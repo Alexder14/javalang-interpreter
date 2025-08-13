@@ -1,0 +1,60 @@
+public static void main(String[] args) {
+    // Declaraciones y tipos
+    int contador = 0;
+    float precio = 19.99f;
+    boolean activo = true;
+    String mensaje = "JavaLang funciona!";
+    char letra = 'A';
+    
+    // Operadores aritméticos
+    int suma = 10 + 5;
+    int producto = suma * 2;
+    int division = producto / 3;
+    int modulo = division % 4;
+    
+    // Operadores de asignación
+    contador += 5;
+    precio *= 1.1f;
+    
+    // Operadores relacionales y lógicos
+    if (contador > 0 && precio <= 100.0f) {
+        activo = !activo;
+    }
+    
+    // Estructuras de control
+    while (contador < 10) {
+        contador++;
+        System.out.println("Contador: " + contador);
+    }
+    
+    for (int i = 0; i < 5; i++) {
+        if (i == 2) continue;
+        if (i == 4) break;
+        System.out.println("i = " + i);
+    }
+    
+    // Switch
+    switch (contador) {
+        case 1:
+            System.out.println("Uno");
+            break;
+        case 2:
+            System.out.println("Dos");
+            break;
+        default:
+            System.out.println("Otro");
+    }
+    
+    // Arreglos
+    int[] numeros = new int[5];
+    int[] valores = {1, 2, 3, 4, 5};
+    
+    // Funciones embebidas
+    int parsed = Integer.parseInt("123");
+    float parsedFloat = Float.parseFloat("3.14");
+    String stringValue = String.valueOf(parsed);
+    
+    /* Comentario de bloque
+       que incluye múltiples líneas
+       para probar el manejo completo */
+}
