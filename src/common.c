@@ -1,6 +1,6 @@
 #include "common.h"
 
-// Variables globales
+// DEFINICIONES de variables globales (solo aquí)
 int line_num = 1;
 int col_num = 1;
 Error errors[MAX_ERRORS];
@@ -35,7 +35,9 @@ void add_error(ErrorType type, const char* message, const char* scope, int line,
     if (error_count < MAX_ERRORS) {
         errors[error_count].type = type;
         strncpy(errors[error_count].message, message, MAX_STRING_LEN - 1);
+        errors[error_count].message[MAX_STRING_LEN - 1] = '\0';
         strncpy(errors[error_count].scope, scope, MAX_IDENTIFIER_LEN - 1);
+        errors[error_count].scope[MAX_IDENTIFIER_LEN - 1] = '\0';
         errors[error_count].line = line;
         errors[error_count].column = col;
         error_count++;
@@ -43,7 +45,7 @@ void add_error(ErrorType type, const char* message, const char* scope, int line,
     }
 }
 
-void print_errors() {
+void print_errors(void) {
     printf("\n=== REPORTE DE ERRORES ===\n");
     printf("No. | Descripción | Ámbito | Línea | Columna\n");
     printf("----|-------------|--------|-------|--------\n");
@@ -59,7 +61,7 @@ void print_errors() {
     printf("\nTotal de errores: %d\n", error_count);
 }
 
-void clear_errors() {
+void clear_errors(void) {
     error_count = 0;
     has_errors = false;
 }

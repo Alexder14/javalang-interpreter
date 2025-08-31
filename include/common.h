@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 // Constantes del proyecto
 #define MAX_IDENTIFIER_LEN 256
@@ -42,7 +43,7 @@ typedef struct {
     int column;
 } Error;
 
-// Variables globales
+// SOLO DECLARACIONES EXTERN (no definiciones)
 extern int line_num;
 extern int col_num;
 extern Error errors[MAX_ERRORS];
@@ -53,7 +54,7 @@ extern bool has_errors;
 char* data_type_to_string(DataType type);
 DataType string_to_data_type(const char* str);
 void add_error(ErrorType type, const char* message, const char* scope, int line, int col);
-void print_errors();
-void clear_errors();
+void print_errors(void);
+void clear_errors(void);
 
-#endif
+#endif // COMMON_H

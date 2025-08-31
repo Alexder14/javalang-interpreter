@@ -1,0 +1,25 @@
+parser/parser.y:2: warning: "_GNU_SOURCE" redefined
+    2 | #define _GNU_SOURCE
+      | 
+<command-line>: note: this is the location of the previous definition
+lexer/lexer.l:2: warning: "_GNU_SOURCE" redefined
+    2 | #define _GNU_SOURCE
+      | 
+<command-line>: note: this is the location of the previous definition
+lexer/lex.yy.c:1797:17: warning: ‘yyunput’ defined but not used [-Wunused-function]
+ 1797 |     static void yyunput (int c, char * yy_bp )
+      |                 ^~~~~~~
+In file included from include/ast.h:4,
+                 from src/ast.c:1:
+include/common.h:4: warning: "_GNU_SOURCE" redefined
+    4 | #define _GNU_SOURCE
+      | 
+<command-line>: note: this is the location of the previous definition
+In file included from src/common.c:1:
+include/common.h:4: warning: "_GNU_SOURCE" redefined
+    4 | #define _GNU_SOURCE
+      | 
+<command-line>: note: this is the location of the previous definition
+/usr/bin/ld: /tmp/ccs2jjbB.o:(.bss+0x0): multiple definition of `ast_root'; /tmp/cc10RmgB.o:(.bss+0x0): first defined here
+/usr/bin/ld: /tmp/ccs2jjbB.o:(.bss+0x8): multiple definition of `has_syntax_errors'; /tmp/cc10RmgB.o:(.bss+0x8): first defined here
+collect2: error: ld returned 1 exit status
