@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "ast.h"
 #include "common.h"
 
@@ -15,7 +16,8 @@ extern int col_num;
 void yyerror(const char *s);
 
 // Variables globales
-extern ASTNode *ast_root;
+ASTNode *ast_root = NULL;
+bool has_syntax_errors = false;
 %}
 
 // Definir tipos de valores
@@ -61,18 +63,18 @@ extern ASTNode *ast_root;
 // Tipos de nodos no terminales
 %type <node> program main_class
 %type <node> statement_list statement
-%type <node> variable_declaration function_declaration
+%type <node> variable_declaration function_declaration parameter_list parameter
 %type <node> assignment_statement expression_statement
 %type <node> if_statement while_statement for_statement do_while_statement
 %type <node> switch_statement case_list case_statement
-%type <node> block_statement
-%type <node> expression primary_expression
+%type <node> block_statement break_statement continue_statement return_statement
+%type <node> expression binary_expression unary_expression primary_expression
 %type <node> function_call argument_list
-%type <node> array_declaration array_access array_initialization
-%type <node> parameter_list parameter
-%type <str_val> type_specifier assignment_operator
+%type <node> array_access array_initialization
+%type <node> type_specifier
 
 // Precedencia de operadores (de menor a mayor)
+%right ASSIGN PLUS_ASSIGN MINUS_ASSIGN MULT_ASSIGN DIV_ASSIGN MOD_ASSIGN
 %left OR
 %left AND
 %left BIT_OR
@@ -83,15 +85,15 @@ extern ASTNode *ast_root;
 %left LEFT_SHIFT RIGHT_SHIFT
 %left PLUS MINUS
 %left MULTIPLY DIVIDE MODULO
-%right NOT BIT_NOT UNARY_MINUS UNARY_PLUS
-%right INCREMENT DECREMENT
-%left DOT LBRACKET
-%left LPAREN
+%right NOT BIT_NOT INCREMENT DECREMENT
+%left LPAREN LBRACKET DOT
 
-// Símbolo inicial
+// Símbolo de inicio
 %start program
 
 %%
+
+// Reglas de gramática
 
 program:
     main_class {
@@ -101,28 +103,23 @@ program:
     ;
 
 main_class:
-    PUBLIC STATIC VOID MAIN LPAREN STRING_TYPE LBRACKET RBRACKET IDENTIFIER RPAREN block_statement {
-        $$ = create_main_class_node($11);
+    PUBLIC STATIC VOID MAIN LPAREN RPAREN LBRACE statement_list RBRACE {
+        $$ = create_main_class_node($8);
     }
-    ;
-
-block_statement:
-    LBRACE statement_list RBRACE {
-        $$ = $2;
-    }
-    | LBRACE RBRACE {
-        $$ = create_list_node();
+    | PUBLIC STATIC VOID MAIN LPAREN STRING_TYPE LBRACKET RBRACKET IDENTIFIER RPAREN LBRACE statement_list RBRACE {
+        $$ = create_main_class_node($12);
+        free($9); // liberar nombre del parámetro args
     }
     ;
 
 statement_list:
-    statement {
-        ASTNode *list = create_list_node();
-        add_to_list(list, $1);
-        $$ = list;
+    /* empty */ {
+        $$ = create_list_node();
     }
     | statement_list statement {
-        add_to_list($1, $2);
+        if ($2 != NULL) {
+            add_to_list($1, $2);
+        }
         $$ = $1;
     }
     ;
@@ -137,22 +134,10 @@ statement:
     | do_while_statement { $$ = $1; }
     | switch_statement { $$ = $1; }
     | block_statement { $$ = $1; }
-    | BREAK SEMICOLON {
-        $$ = create_node(NODE_BREAK_STMT, line_num, col_num);
-    }
-    | CONTINUE SEMICOLON {
-        $$ = create_node(NODE_CONTINUE_STMT, line_num, col_num);
-    }
-    | RETURN SEMICOLON {
-        ASTNode *node = create_node(NODE_RETURN_STMT, line_num, col_num);
-        node->data.return_stmt.value = NULL;
-        $$ = node;
-    }
-    | RETURN expression SEMICOLON {
-        ASTNode *node = create_node(NODE_RETURN_STMT, line_num, col_num);
-        node->data.return_stmt.value = $2;
-        $$ = node;
-    }
+    | break_statement { $$ = $1; }
+    | continue_statement { $$ = $1; }
+    | return_statement { $$ = $1; }
+    | function_declaration { $$ = $1; }
     ;
 
 variable_declaration:
@@ -178,41 +163,84 @@ variable_declaration:
     }
     | FINAL type_specifier IDENTIFIER ASSIGN expression SEMICOLON {
         ASTNode *node = create_var_decl_node($2, $3, $5, false, 0);
-        // Marcar como constante (se puede agregar un flag al nodo)
-        $$ = node;
+        // Marcar como constante (se podría añadir un campo is_const al AST)
         free($2);
         free($3);
+        $$ = node;
+    }
+    ;
+
+function_declaration:
+    type_specifier IDENTIFIER LPAREN parameter_list RPAREN LBRACE statement_list RBRACE {
+        $$ = create_function_decl_node($1, $2, $4, $7);
+        free($1);
+        free($2);
+    }
+    | type_specifier IDENTIFIER LPAREN RPAREN LBRACE statement_list RBRACE {
+        $$ = create_function_decl_node($1, $2, NULL, $6);
+        free($1);
+        free($2);
+    }
+    ;
+
+parameter_list:
+    parameter {
+        ASTNode *list = create_list_node();
+        add_to_list(list, $1);
+        $$ = list;
+    }
+    | parameter_list COMMA parameter {
+        add_to_list($1, $3);
+        $$ = $1;
+    }
+    ;
+
+parameter:
+    type_specifier IDENTIFIER {
+        $$ = create_parameter_node($1, $2, false);
+        free($1);
+        free($2);
+    }
+    | type_specifier LBRACKET RBRACKET IDENTIFIER {
+        $$ = create_parameter_node($1, $4, true);
+        free($1);
+        free($4);
     }
     ;
 
 assignment_statement:
-    IDENTIFIER assignment_operator expression SEMICOLON {
-        ASTNode *left = create_identifier_node($1);
-        $$ = create_assignment_node(left, $2, $3);
+    IDENTIFIER ASSIGN expression SEMICOLON {
+        ASTNode *var = create_identifier_node($1);
+        $$ = create_assignment_node(var, "=", $3);
         free($1);
-        free($2);
     }
-    | array_access assignment_operator expression SEMICOLON {
-        $$ = create_assignment_node($1, $2, $3);
-        free($2);
+    | IDENTIFIER PLUS_ASSIGN expression SEMICOLON {
+        ASTNode *var = create_identifier_node($1);
+        $$ = create_assignment_node(var, "+=", $3);
+        free($1);
     }
-    ;
-
-assignment_operator:
-    ASSIGN { $$ = strdup("="); }
-    | PLUS_ASSIGN { $$ = strdup("+="); }
-    | MINUS_ASSIGN { $$ = strdup("-="); }
-    | MULT_ASSIGN { $$ = strdup("*="); }
-    | DIV_ASSIGN { $$ = strdup("/="); }
-    | MOD_ASSIGN { $$ = strdup("%="); }
+    | IDENTIFIER MINUS_ASSIGN expression SEMICOLON {
+        ASTNode *var = create_identifier_node($1);
+        $$ = create_assignment_node(var, "-=", $3);
+        free($1);
+    }
+    | IDENTIFIER MULT_ASSIGN expression SEMICOLON {
+        ASTNode *var = create_identifier_node($1);
+        $$ = create_assignment_node(var, "*=", $3);
+        free($1);
+    }
+    | IDENTIFIER DIV_ASSIGN expression SEMICOLON {
+        ASTNode *var = create_identifier_node($1);
+        $$ = create_assignment_node(var, "/=", $3);
+        free($1);
+    }
+    | array_access ASSIGN expression SEMICOLON {
+        $$ = create_assignment_node($1, "=", $3);
+    }
     ;
 
 expression_statement:
-    expression SEMICOLON {
-        ASTNode *node = create_node(NODE_EXPRESSION_STMT, line_num, col_num);
-        node->data.program.body = $1;  // Reutilizar campo
-        $$ = node;
-    }
+    expression SEMICOLON { $$ = $1; }
     ;
 
 if_statement:
@@ -244,9 +272,9 @@ for_statement:
 
 do_while_statement:
     DO statement WHILE LPAREN expression RPAREN SEMICOLON {
-        ASTNode *node = create_node(NODE_DO_WHILE_STMT, line_num, col_num);
-        node->data.while_stmt.condition = $5;
-        node->data.while_stmt.body = $2;
+        // Crear un nodo do-while (podemos usar while_node con un flag)
+        ASTNode *node = create_while_node($5, $2);
+        // Marcar como do-while si necesario
         $$ = node;
     }
     ;
@@ -273,7 +301,7 @@ case_list:
     ;
 
 case_statement:
-    CASE expression COLON statement_list {
+    CASE primary_expression COLON statement_list {
         ASTNode *node = create_node(NODE_CASE_STMT, line_num, col_num);
         node->data.case_stmt.value = $2;
         node->data.case_stmt.statements = $4;
@@ -281,15 +309,58 @@ case_statement:
     }
     | DEFAULT COLON statement_list {
         ASTNode *node = create_node(NODE_CASE_STMT, line_num, col_num);
-        node->data.case_stmt.value = NULL;  // NULL indica default
+        node->data.case_stmt.value = NULL; // default case
         node->data.case_stmt.statements = $3;
         $$ = node;
     }
     ;
 
+block_statement:
+    LBRACE statement_list RBRACE {
+        $$ = create_block_node();
+        // Convertir lista en bloque
+        for (int i = 0; i < get_list_size($2); i++) {
+            ASTNode *stmt = get_from_list($2, i);
+            add_to_list($$, stmt);
+        }
+    }
+    ;
+
+break_statement:
+    BREAK SEMICOLON {
+        ASTNode *node = create_node(NODE_BREAK_STMT, line_num, col_num);
+        $$ = node;
+    }
+    ;
+
+continue_statement:
+    CONTINUE SEMICOLON {
+        ASTNode *node = create_node(NODE_CONTINUE_STMT, line_num, col_num);
+        $$ = node;
+    }
+    ;
+
+return_statement:
+    RETURN SEMICOLON {
+        ASTNode *node = create_node(NODE_RETURN_STMT, line_num, col_num);
+        node->data.return_stmt.value = NULL;
+        $$ = node;
+    }
+    | RETURN expression SEMICOLON {
+        ASTNode *node = create_node(NODE_RETURN_STMT, line_num, col_num);
+        node->data.return_stmt.value = $2;
+        $$ = node;
+    }
+    ;
+
 expression:
-    primary_expression { $$ = $1; }
-    | expression PLUS expression {
+    binary_expression { $$ = $1; }
+    | unary_expression { $$ = $1; }
+    | primary_expression { $$ = $1; }
+    ;
+
+binary_expression:
+    expression PLUS expression {
         $$ = create_binary_op_node("+", $1, $3);
     }
     | expression MINUS expression {
@@ -328,44 +399,57 @@ expression:
     | expression OR expression {
         $$ = create_binary_op_node("||", $1, $3);
     }
-    | NOT expression {
+    | expression BIT_AND expression {
+        $$ = create_binary_op_node("&", $1, $3);
+    }
+    | expression BIT_OR expression {
+        $$ = create_binary_op_node("|", $1, $3);
+    }
+    | expression BIT_XOR expression {
+        $$ = create_binary_op_node("^", $1, $3);
+    }
+    ;
+
+unary_expression:
+    NOT expression {
         $$ = create_unary_op_node("!", $2, true);
     }
-    | MINUS expression %prec UNARY_MINUS {
+    | BIT_NOT expression {
+        $$ = create_unary_op_node("~", $2, true);
+    }
+    | MINUS expression {
         $$ = create_unary_op_node("-", $2, true);
     }
-    | PLUS expression %prec UNARY_PLUS {
+    | PLUS expression {
         $$ = create_unary_op_node("+", $2, true);
     }
-    | IDENTIFIER INCREMENT {
-        ASTNode *id = create_identifier_node($1);
-        $$ = create_unary_op_node("++", id, false);
-        free($1);
-    }
-    | IDENTIFIER DECREMENT {
-        ASTNode *id = create_identifier_node($1);
-        $$ = create_unary_op_node("--", id, false);
-        free($1);
-    }
     | INCREMENT IDENTIFIER {
-        ASTNode *id = create_identifier_node($2);
-        $$ = create_unary_op_node("++", id, true);
+        ASTNode *var = create_identifier_node($2);
+        $$ = create_unary_op_node("++", var, true);
         free($2);
     }
     | DECREMENT IDENTIFIER {
-        ASTNode *id = create_identifier_node($2);
-        $$ = create_unary_op_node("--", id, true);
+        ASTNode *var = create_identifier_node($2);
+        $$ = create_unary_op_node("--", var, true);
         free($2);
     }
-    | LPAREN expression RPAREN {
-        $$ = $2;
+    | IDENTIFIER INCREMENT {
+        ASTNode *var = create_identifier_node($1);
+        $$ = create_unary_op_node("++", var, false);
+        free($1);
     }
-    | function_call { $$ = $1; }
-    | array_access { $$ = $1; }
+    | IDENTIFIER DECREMENT {
+        ASTNode *var = create_identifier_node($1);
+        $$ = create_unary_op_node("--", var, false);
+        free($1);
+    }
     ;
 
 primary_expression:
-    IDENTIFIER {
+    LPAREN expression RPAREN {
+        $$ = $2;
+    }
+    | IDENTIFIER {
         $$ = create_identifier_node($1);
         free($1);
     }
@@ -391,6 +475,9 @@ primary_expression:
     | NULL_VAL {
         $$ = create_null_literal_node();
     }
+    | function_call { $$ = $1; }
+    | array_access { $$ = $1; }
+    | array_initialization { $$ = $1; }
     ;
 
 function_call:
@@ -433,9 +520,10 @@ array_access:
 array_initialization:
     NEW type_specifier LBRACKET expression RBRACKET {
         ASTNode *node = create_node(NODE_ARRAY_INIT, line_num, col_num);
-        node->data.array_init.type = $2;
+        node->data.array_init.type = strdup($2);
         node->data.array_init.size = $4;
         node->data.array_init.values = NULL;
+        free($2);
         $$ = node;
     }
     | LBRACE argument_list RBRACE {
@@ -464,3 +552,52 @@ void yyerror(const char *s) {
     add_error(ERROR_SYNTACTIC, s, "Global", line_num, col_num);
     fprintf(stderr, "Error sintáctico en línea %d, columna %d: %s\n", line_num, col_num, s);
 }
+
+#ifdef TEST_PARSER
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        fprintf(stderr, "Uso: %s <archivo.usl>\n", argv[0]);
+        return 1;
+    }
+
+    FILE *file = fopen(argv[1], "r");
+    if (!file) {
+        perror("Error al abrir archivo");
+        return 1;
+    }
+
+    yyin = file;
+    line_num = 1;
+    col_num = 1;
+    
+    printf("🔍 Analizando archivo: %s\n", argv[1]);
+    printf("==============================\n");
+
+    if (yyparse() == 0 && !has_syntax_errors) {
+        printf("✅ Análisis sintáctico exitoso!\n\n");
+        
+        if (ast_root) {
+            printf("🌳 Árbol de Sintaxis Abstracta:\n");
+            printf("================================\n");
+            print_ast(ast_root, 0);
+            printf("\n");
+        }
+        
+        printf("📊 Estadísticas:\n");
+        printf("- Sin errores sintácticos\n");
+        printf("- AST generado correctamente\n");
+        
+    } else {
+        printf("❌ Se encontraron errores sintácticos\n");
+        print_errors();
+    }
+    
+    fclose(file);
+    
+    if (ast_root) {
+        free_ast(ast_root);
+    }
+    
+    return has_syntax_errors ? 1 : 0;
+}
+#endif

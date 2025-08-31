@@ -1,0 +1,67 @@
+// Ejemplo con funciones en JavaLang
+// Demuestra declaración y llamada de funciones
+
+// Función simple sin parámetros
+void saludar() {
+    println("¡Hola desde la función!");
+}
+
+// Función con parámetros
+int sumar(int a, int b) {
+    int resultado = a + b;
+    return resultado;
+}
+
+// Función con parámetros de diferentes tipos
+float calcularArea(float ancho, float alto) {
+    return ancho * alto;
+}
+
+// Función con arreglos
+int encontrarMaximo(int[] numeros) {
+    int max = numeros[0];
+    for (int i = 1; i < 5; i = i + 1) {
+        if (numeros[i] > max) {
+            max = numeros[i];
+        }
+    }
+    return max;
+}
+
+// Función recursiva - factorial
+int factorial(int n) {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+// Función principal
+public static void main() {
+    println("=== PRUEBA DE FUNCIONES ===");
+    
+    // Llamada a función sin parámetros
+    saludar();
+    
+    // Llamadas a funciones con parámetros
+    int suma = sumar(10, 20);
+    println("Suma de 10 + 20 = " + suma);
+    
+    float area = calcularArea(5.5, 3.2);
+    println("Área del rectángulo: " + area);
+    
+    // Función con arreglo
+    int[] valores = {15, 3, 27, 8, 12};
+    int maximo = encontrarMaximo(valores);
+    println("El valor máximo es: " + maximo);
+    
+    // Función recursiva
+    int fact = factorial(5);
+    println("Factorial de 5: " + fact);
+    
+    // Funciones anidadas en expresiones
+    int resultado = sumar(factorial(3), sumar(5, 10));
+    println("Resultado complejo: " + resultado);
+    
+    println("=== FIN DE PRUEBAS ===");
+}

@@ -2,6 +2,11 @@
 #define AST_H
 
 #include "common.h"
+#include <stdbool.h>
+
+// Declaraciones forward
+extern int line_num;
+extern int col_num;
 
 // Tipos de nodos del AST
 typedef enum {
@@ -53,6 +58,9 @@ typedef enum {
     NODE_EXPRESSION_LIST,
     NODE_PARAMETER_LIST
 } NodeType;
+
+// Forward declaration
+struct ASTNode;
 
 // Estructura principal del nodo AST
 typedef struct ASTNode {
@@ -231,7 +239,7 @@ ASTNode* create_main_class_node(ASTNode *body);
 ASTNode* create_var_decl_node(const char *type, const char *name, ASTNode *init, bool is_array, int array_size);
 ASTNode* create_function_decl_node(const char *return_type, const char *name, ASTNode *params, ASTNode *body);
 ASTNode* create_parameter_node(const char *type, const char *name, bool is_array);
-ASTNode* create_block_node();
+ASTNode* create_block_node(void);
 ASTNode* create_if_node(ASTNode *condition, ASTNode *then_stmt, ASTNode *else_stmt);
 ASTNode* create_while_node(ASTNode *condition, ASTNode *body);
 ASTNode* create_for_node(ASTNode *init, ASTNode *condition, ASTNode *update, ASTNode *body);
@@ -245,9 +253,9 @@ ASTNode* create_float_literal_node(float value);
 ASTNode* create_string_literal_node(const char *value);
 ASTNode* create_char_literal_node(char value);
 ASTNode* create_boolean_literal_node(bool value);
-ASTNode* create_null_literal_node();
+ASTNode* create_null_literal_node(void);
 ASTNode* create_identifier_node(const char *name);
-ASTNode* create_list_node();
+ASTNode* create_list_node(void);
 
 // Funciones para manipular listas
 void add_to_list(ASTNode *list, ASTNode *item);
@@ -263,4 +271,4 @@ ASTNode* clone_ast(ASTNode *node);
 extern ASTNode *ast_root;
 extern bool has_syntax_errors;
 
-#endif
+#endif // AST_H

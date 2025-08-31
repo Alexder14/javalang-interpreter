@@ -1,0 +1,24 @@
+// Ejemplo básico de JavaLang
+// Prueba de variables y expresiones aritméticas
+
+public static void main() {
+    // Declaración de variables
+    int numero = 10;
+    float decimal = 3.14;
+    boolean activo = true;
+    String mensaje = "Hola JavaLang";
+    
+    // Operaciones aritméticas
+    int suma = numero + 5;
+    float resultado = decimal * 2.0;
+    
+    // Salida por pantalla
+    println("El número es: " + numero);
+    println("La suma es: " + suma);
+    println("El resultado es: " + resultado);
+    println(mensaje);
+    
+    // Expresiones lógicas
+    boolean esPositivo = numero > 0;
+    println("¿Es positivo? " + esPositivo);
+}

@@ -1,0 +1,99 @@
+// Ejemplo completo de JavaLang
+// Incluye variables, estructuras de control, arreglos y funciones
+
+public static void main() {
+    // === VARIABLES Y TIPOS ===
+    int edad = 25;
+    float salario = 1500.50;
+    boolean esEmpleado = true;
+    String nombre = "Juan Pérez";
+    char inicial = 'J';
+    
+    println("=== INFORMACIÓN PERSONAL ===");
+    println("Nombre: " + nombre);
+    println("Edad: " + edad);
+    println("Salario: " + salario);
+    
+    // === ESTRUCTURA IF-ELSE ===
+    if (edad >= 18) {
+        println("Es mayor de edad");
+        if (esEmpleado) {
+            println("Tiene trabajo");
+        } else {
+            println("No tiene trabajo");
+        }
+    } else {
+        println("Es menor de edad");
+    }
+    
+    // === ESTRUCTURA SWITCH ===
+    int dia = 3;
+    println("\n=== DÍA DE LA SEMANA ===");
+    switch (dia) {
+        case 1:
+            println("Lunes");
+            break;
+        case 2:
+            println("Martes");
+            break;
+        case 3:
+            println("Miércoles");
+            break;
+        case 4:
+            println("Jueves");
+            break;
+        case 5:
+            println("Viernes");
+            break;
+        default:
+            println("Fin de semana");
+    }
+    
+    // === BUCLE WHILE ===
+    println("\n=== CONTEO WHILE ===");
+    int contador = 1;
+    while (contador <= 5) {
+        println("Contador: " + contador);
+        contador = contador + 1;
+    }
+    
+    // === BUCLE FOR ===
+    println("\n=== CONTEO FOR ===");
+    for (int i = 0; i < 5; i = i + 1) {
+        println("Iteración: " + i);
+    }
+    
+    // === ARREGLOS ===
+    println("\n=== ARREGLOS ===");
+    int[] numeros = {10, 20, 30, 40, 50};
+    println("Primer número: " + numeros[0]);
+    println("Último número: " + numeros[4]);
+    
+    // Arreglo dinámico
+    float[] decimales = new float[3];
+    decimales[0] = 1.1;
+    decimales[1] = 2.2;
+    decimales[2] = 3.3;
+    
+    // === OPERADORES DE ASIGNACIÓN ===
+    edad += 1;  // edad = edad + 1
+    salario *= 1.1;  // aumento del 10%
+    
+    println("\n=== DATOS ACTUALIZADOS ===");
+    println("Nueva edad: " + edad);
+    println("Nuevo salario: " + salario);
+    
+    // === OPERADORES UNARIOS ===
+    int x = 10;
+    println("\n=== OPERADORES UNARIOS ===");
+    println("x: " + x);
+    println("++x: " + ++x);
+    println("x++: " + x++);
+    println("x final: " + x);
+    
+    // === EXPRESIONES LÓGICAS COMPLEJAS ===
+    boolean resultado = (edad > 20) && (salario > 1000.0) || esEmpleado;
+    println("\n¿Cumple criterios? " + resultado);
+    
+    println("\n=== PROGRAMA TERMINADO ===");
+}
