@@ -129,7 +129,9 @@ extern int yydebug;
     PARSE_DOUBLE = 335,
     VALUE_OF = 336,
     STRING_JOIN = 337,
-    ARRAY_INDEX_OF = 338
+    ARRAY_INDEX_OF = 338,
+    UNARY_MINUS = 339,
+    UNARY_PLUS = 340
   };
 #endif
 
@@ -143,10 +145,10 @@ union YYSTYPE
     float float_val;
     char char_val;
     char *str_val;
-    struct ASTNode *node;
+    ASTNode *node;
     bool bool_val;
 
-#line 150 "parser/parser.tab.h"
+#line 152 "parser/parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

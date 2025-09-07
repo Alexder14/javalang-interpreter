@@ -1,0 +1,111 @@
+// Archivo de prueba para análisis semántico - Fase 4
+// Este archivo incluye casos válidos e inválidos para probar
+// las capacidades del analizador semántico
+
+public static void main() {
+    // Declaraciones de variables válidas
+    int numero = 42;
+    float precio = 19.99;
+    boolean activo = true;
+    String nombre = "JavaLang";
+    char inicial = 'J';
+    
+    // Declaraciones de arreglos
+    int[] numeros = new int[5];
+    String[] nombres = {"Juan", "María", "Pedro"};
+    
+    // Operaciones aritméticas válidas
+    int suma = numero + 10;
+    float total = precio * 1.16;
+    boolean resultado = activo && true;
+    
+    // Asignaciones válidas
+    numero = suma;
+    precio = total;
+    activo = false;
+    
+    // Estructuras de control
+    if (numero > 30) {
+        System.out.println("Número mayor que 30");
+        suma = suma + 1;
+    } else {
+        System.out.println("Número menor o igual a 30");
+    }
+    
+    // Bucle while
+    int contador = 0;
+    while (contador < 5) {
+        System.out.println("Contador: " + contador);
+        contador = contador + 1;
+    }
+    
+    // Bucle for
+    for (int i = 0; i < 3; i = i + 1) {
+        System.out.println("Iteración: " + i);
+        numeros[i] = i * 2;
+    }
+    
+    // Llamadas a funciones
+    int resultado_funcion = calcular(numero, suma);
+    System.out.println("Resultado: " + resultado_funcion);
+    
+    // Casos que deberían generar errores semánticos:
+    // (Descomenta para probar detección de errores)
+    
+    // Error: Variable no declarada
+    // variable_inexistente = 100;
+    
+    // Error: Tipos incompatibles
+    // numero = "texto";
+    // activo = 3.14;
+    
+    // Error: Operación inválida entre tipos
+    // resultado = nombre + numero;
+    
+    // Error: Condición no booleana en if
+    // if (numero) {
+    //     System.out.println("Error");
+    // }
+    
+    // Error: Asignación a constante
+    // final int CONSTANTE = 10;
+    // CONSTANTE = 20;
+}
+
+// Función auxiliar para pruebas
+public static int calcular(int a, int b) {
+    int resultado = a + b;
+    
+    if (resultado < 0) {
+        return 0;
+    }
+    
+    return resultado;
+}
+
+// Función con diferentes tipos de parámetros
+public static void mostrarInfo(String mensaje, int valor, boolean mostrar) {
+    if (mostrar) {
+        System.out.println(mensaje + ": " + valor);
+    }
+}
+
+// Función que demuestra alcance de variables
+public static float calcularPromedio(int[] valores) {
+    int suma = 0;
+    int cantidad = 0;
+    
+    // Variable local con el mismo nombre que parámetro de main
+    int numero = 0;
+    
+    for (int i = 0; i < 5; i = i + 1) {
+        suma = suma + valores[i];
+        cantidad = cantidad + 1;
+    }
+    
+    if (cantidad > 0) {
+        return suma / cantidad;
+    } else {
+        return 0.0;
+    }
+}

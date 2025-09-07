@@ -1,0 +1,10 @@
+public class TestErrores {
+    public static void main() {
+        int x = 5;
+        y = 10;  // Error: variable no declarada
+        x = "texto";  // Error: tipo incompatible
+        if (x) {  // Error: condición no booleana
+            System.out.println("Nunca debería ejecutarse");
+        }
+    }
+}

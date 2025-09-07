@@ -1,0 +1,45 @@
+# Archivos compilados
+*.o
+*.so
+*.a
+
+# Ejecutables
+javalang_interpreter
+test_lexer
+test_parser
+test_semantic
+
+# Archivos generados por Flex/Bison
+lexer/lex.yy.c
+parser/parser.tab.c
+parser/parser.tab.h
+
+# Reportes generados
+*_report.txt
+*_report.html
+*_report.json
+*.dot
+*.png
+
+# Logs
+*.log
+test_results.log
+
+# Directorios de build
+build/
+dist/
+
+# Archivos de respaldo
+*~
+*.bak
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
