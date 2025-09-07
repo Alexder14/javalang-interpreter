@@ -2,7 +2,6 @@
 #define AST_H
 
 #include "common.h"
-#include <stdbool.h>
 
 // Tipos de nodos del AST
 typedef enum {
@@ -13,7 +12,7 @@ typedef enum {
     // Declaraciones
     NODE_VAR_DECL,
     NODE_CONST_DECL,
-    NODE_FUNCTION_DECL,   // Usar este nombre consistentemente
+    NODE_FUNCTION_DECL,
     NODE_PARAMETER,
     
     // Sentencias
@@ -49,7 +48,7 @@ typedef enum {
     NODE_IDENTIFIER,
     NODE_TYPE,
     
-    // Lista de nodos (IMPORTANTE: agregar este)
+    // Lista de nodos
     NODE_LIST,
     NODE_STATEMENT_LIST,
     NODE_EXPRESSION_LIST,
@@ -61,11 +60,6 @@ typedef struct ASTNode {
     NodeType type;
     int line;
     int column;
-    
-    // Para listas
-    struct ASTNode **children;
-    int child_count;
-    int child_capacity;
     
     union {
         // Programa principal
@@ -80,20 +74,20 @@ typedef struct ASTNode {
         
         // Declaración de variable
         struct {
-            char *data_type;  // Cambiar de type a data_type para consistencia
+            char *data_type;
             char *name;
             struct ASTNode *init_value;
             bool is_array;
             int array_size;
         } var_decl;
         
-        // Declaración de función
+        // Declaración de función - CAMPO CLAVE QUE FALTABA
         struct {
             char *return_type;
             char *name;
             struct ASTNode *parameters;
             struct ASTNode *body;
-        } function_decl;  // Usar function_decl consistentemente
+        } func_decl;
         
         // Parámetro de función
         struct {
@@ -116,7 +110,7 @@ typedef struct ASTNode {
             struct ASTNode *else_stmt;
         } if_stmt;
         
-        // Sentencia while (usar para while y do-while)
+        // Sentencia while
         struct {
             struct ASTNode *condition;
             struct ASTNode *body;
@@ -269,7 +263,5 @@ ASTNode* clone_ast(ASTNode *node);
 // Variables globales del parser
 extern ASTNode *ast_root;
 extern bool has_syntax_errors;
-extern int line_num;
-extern int col_num;
 
 #endif

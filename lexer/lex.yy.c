@@ -742,9 +742,6 @@ char *yytext;
 #define CHAR_LITERAL 81
 #endif
 
-/* Variables globales para manejo de posición */
-int line_num = 1;
-int col_num = 1;
 
 /* Funciones auxiliares */
 void update_column();
@@ -760,13 +757,13 @@ extern YYSTYPE yylval;
 extern YYSTYPE yylval;
 #endif
 
-#line 764 "lexer/lex.yy.c"
+#line 761 "lexer/lex.yy.c"
 /* Expresiones regulares básicas */
 /* Literales numéricos */
 /* Literales de caracteres y cadenas */
 /* Espacios en blanco */
 /* Comentarios */
-#line 770 "lexer/lex.yy.c"
+#line 767 "lexer/lex.yy.c"
 
 #define INITIAL 0
 
@@ -983,10 +980,10 @@ YY_DECL
 		}
 
 	{
-#line 139 "lexer/lexer.l"
+#line 136 "lexer/lexer.l"
 
 
-#line 990 "lexer/lex.yy.c"
+#line 987 "lexer/lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1045,7 +1042,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 141 "lexer/lexer.l"
+#line 138 "lexer/lexer.l"
 { 
     col_num += yyleng; 
 }
@@ -1053,7 +1050,7 @@ YY_RULE_SETUP
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 145 "lexer/lexer.l"
+#line 142 "lexer/lexer.l"
 { 
     line_num++; 
     col_num = 1; 
@@ -1061,7 +1058,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 150 "lexer/lexer.l"
+#line 147 "lexer/lexer.l"
 { 
     update_column();
     #ifdef TEST_LEXER
@@ -1072,7 +1069,7 @@ YY_RULE_SETUP
 case 4:
 /* rule 4 can match eol */
 YY_RULE_SETUP
-#line 157 "lexer/lexer.l"
+#line 154 "lexer/lexer.l"
 { 
     // Contar líneas en comentarios multi-línea
     for (int i = 0; i < yyleng; i++) {
@@ -1090,142 +1087,142 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 172 "lexer/lexer.l"
+#line 169 "lexer/lexer.l"
 { update_column(); return PUBLIC; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 173 "lexer/lexer.l"
+#line 170 "lexer/lexer.l"
 { update_column(); return PRIVATE; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 174 "lexer/lexer.l"
+#line 171 "lexer/lexer.l"
 { update_column(); return PROTECTED; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 175 "lexer/lexer.l"
+#line 172 "lexer/lexer.l"
 { update_column(); return STATIC; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 176 "lexer/lexer.l"
+#line 173 "lexer/lexer.l"
 { update_column(); return FINAL; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 177 "lexer/lexer.l"
+#line 174 "lexer/lexer.l"
 { update_column(); return VOID; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 178 "lexer/lexer.l"
+#line 175 "lexer/lexer.l"
 { update_column(); return MAIN; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 180 "lexer/lexer.l"
+#line 177 "lexer/lexer.l"
 { update_column(); return INT; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 181 "lexer/lexer.l"
+#line 178 "lexer/lexer.l"
 { update_column(); return FLOAT; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 182 "lexer/lexer.l"
+#line 179 "lexer/lexer.l"
 { update_column(); return DOUBLE; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 183 "lexer/lexer.l"
+#line 180 "lexer/lexer.l"
 { update_column(); return BOOLEAN; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 184 "lexer/lexer.l"
+#line 181 "lexer/lexer.l"
 { update_column(); return CHAR; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 185 "lexer/lexer.l"
+#line 182 "lexer/lexer.l"
 { update_column(); return STRING_TYPE; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 187 "lexer/lexer.l"
+#line 184 "lexer/lexer.l"
 { update_column(); return IF; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 188 "lexer/lexer.l"
+#line 185 "lexer/lexer.l"
 { update_column(); return ELSE; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 189 "lexer/lexer.l"
+#line 186 "lexer/lexer.l"
 { update_column(); return SWITCH; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 190 "lexer/lexer.l"
+#line 187 "lexer/lexer.l"
 { update_column(); return CASE; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 191 "lexer/lexer.l"
+#line 188 "lexer/lexer.l"
 { update_column(); return DEFAULT; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 192 "lexer/lexer.l"
+#line 189 "lexer/lexer.l"
 { update_column(); return WHILE; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 193 "lexer/lexer.l"
+#line 190 "lexer/lexer.l"
 { update_column(); return FOR; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 194 "lexer/lexer.l"
+#line 191 "lexer/lexer.l"
 { update_column(); return DO; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 195 "lexer/lexer.l"
+#line 192 "lexer/lexer.l"
 { update_column(); return BREAK; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 196 "lexer/lexer.l"
+#line 193 "lexer/lexer.l"
 { update_column(); return CONTINUE; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 197 "lexer/lexer.l"
+#line 194 "lexer/lexer.l"
 { update_column(); return RETURN; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 199 "lexer/lexer.l"
+#line 196 "lexer/lexer.l"
 { update_column(); return NULL_VAL; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 200 "lexer/lexer.l"
+#line 197 "lexer/lexer.l"
 { update_column(); return NEW; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 201 "lexer/lexer.l"
+#line 198 "lexer/lexer.l"
 { update_column(); return THIS; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 202 "lexer/lexer.l"
+#line 199 "lexer/lexer.l"
 { 
     update_column(); 
     #if defined(TEST_PARSER) || defined(TEST_SEMANTIC)
@@ -1236,7 +1233,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 209 "lexer/lexer.l"
+#line 206 "lexer/lexer.l"
 { 
     update_column(); 
     #if defined(TEST_PARSER) || defined(TEST_SEMANTIC)
@@ -1247,242 +1244,242 @@ YY_RULE_SETUP
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 217 "lexer/lexer.l"
+#line 214 "lexer/lexer.l"
 { update_column(); return PRINTLN; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 218 "lexer/lexer.l"
+#line 215 "lexer/lexer.l"
 { update_column(); return PRINT; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 219 "lexer/lexer.l"
+#line 216 "lexer/lexer.l"
 { update_column(); return PARSE_INT; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 220 "lexer/lexer.l"
+#line 217 "lexer/lexer.l"
 { update_column(); return PARSE_FLOAT; }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 221 "lexer/lexer.l"
+#line 218 "lexer/lexer.l"
 { update_column(); return PARSE_DOUBLE; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 222 "lexer/lexer.l"
+#line 219 "lexer/lexer.l"
 { update_column(); return VALUE_OF; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 223 "lexer/lexer.l"
+#line 220 "lexer/lexer.l"
 { update_column(); return STRING_JOIN; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 224 "lexer/lexer.l"
+#line 221 "lexer/lexer.l"
 { update_column(); return ARRAY_INDEX_OF; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 226 "lexer/lexer.l"
+#line 223 "lexer/lexer.l"
 { update_column(); return INCREMENT; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 227 "lexer/lexer.l"
+#line 224 "lexer/lexer.l"
 { update_column(); return DECREMENT; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 228 "lexer/lexer.l"
+#line 225 "lexer/lexer.l"
 { update_column(); return PLUS_ASSIGN; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 229 "lexer/lexer.l"
+#line 226 "lexer/lexer.l"
 { update_column(); return MINUS_ASSIGN; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 230 "lexer/lexer.l"
+#line 227 "lexer/lexer.l"
 { update_column(); return MULT_ASSIGN; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 231 "lexer/lexer.l"
+#line 228 "lexer/lexer.l"
 { update_column(); return DIV_ASSIGN; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 232 "lexer/lexer.l"
+#line 229 "lexer/lexer.l"
 { update_column(); return MOD_ASSIGN; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 233 "lexer/lexer.l"
+#line 230 "lexer/lexer.l"
 { update_column(); return EQUAL; }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 234 "lexer/lexer.l"
+#line 231 "lexer/lexer.l"
 { update_column(); return NOT_EQUAL; }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 235 "lexer/lexer.l"
+#line 232 "lexer/lexer.l"
 { update_column(); return LESS_EQUAL; }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 236 "lexer/lexer.l"
+#line 233 "lexer/lexer.l"
 { update_column(); return GREATER_EQUAL; }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 237 "lexer/lexer.l"
+#line 234 "lexer/lexer.l"
 { update_column(); return AND; }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 238 "lexer/lexer.l"
+#line 235 "lexer/lexer.l"
 { update_column(); return OR; }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 239 "lexer/lexer.l"
+#line 236 "lexer/lexer.l"
 { update_column(); return LEFT_SHIFT; }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 240 "lexer/lexer.l"
+#line 237 "lexer/lexer.l"
 { update_column(); return RIGHT_SHIFT; }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 242 "lexer/lexer.l"
+#line 239 "lexer/lexer.l"
 { update_column(); return PLUS; }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 243 "lexer/lexer.l"
+#line 240 "lexer/lexer.l"
 { update_column(); return MINUS; }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 244 "lexer/lexer.l"
+#line 241 "lexer/lexer.l"
 { update_column(); return MULTIPLY; }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 245 "lexer/lexer.l"
+#line 242 "lexer/lexer.l"
 { update_column(); return DIVIDE; }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 246 "lexer/lexer.l"
+#line 243 "lexer/lexer.l"
 { update_column(); return MODULO; }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 247 "lexer/lexer.l"
+#line 244 "lexer/lexer.l"
 { update_column(); return ASSIGN; }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 248 "lexer/lexer.l"
+#line 245 "lexer/lexer.l"
 { update_column(); return LESS; }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 249 "lexer/lexer.l"
+#line 246 "lexer/lexer.l"
 { update_column(); return GREATER; }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 250 "lexer/lexer.l"
+#line 247 "lexer/lexer.l"
 { update_column(); return NOT; }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 251 "lexer/lexer.l"
+#line 248 "lexer/lexer.l"
 { update_column(); return BIT_AND; }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 252 "lexer/lexer.l"
+#line 249 "lexer/lexer.l"
 { update_column(); return BIT_OR; }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 253 "lexer/lexer.l"
+#line 250 "lexer/lexer.l"
 { update_column(); return BIT_XOR; }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 254 "lexer/lexer.l"
+#line 251 "lexer/lexer.l"
 { update_column(); return BIT_NOT; }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 256 "lexer/lexer.l"
+#line 253 "lexer/lexer.l"
 { update_column(); return LPAREN; }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 257 "lexer/lexer.l"
+#line 254 "lexer/lexer.l"
 { update_column(); return RPAREN; }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 258 "lexer/lexer.l"
+#line 255 "lexer/lexer.l"
 { update_column(); return LBRACE; }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 259 "lexer/lexer.l"
+#line 256 "lexer/lexer.l"
 { update_column(); return RBRACE; }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 260 "lexer/lexer.l"
+#line 257 "lexer/lexer.l"
 { update_column(); return LBRACKET; }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 261 "lexer/lexer.l"
+#line 258 "lexer/lexer.l"
 { update_column(); return RBRACKET; }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 262 "lexer/lexer.l"
+#line 259 "lexer/lexer.l"
 { update_column(); return SEMICOLON; }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 263 "lexer/lexer.l"
+#line 260 "lexer/lexer.l"
 { update_column(); return COMMA; }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 264 "lexer/lexer.l"
+#line 261 "lexer/lexer.l"
 { update_column(); return DOT; }
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 265 "lexer/lexer.l"
+#line 262 "lexer/lexer.l"
 { update_column(); return COLON; }
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 266 "lexer/lexer.l"
+#line 263 "lexer/lexer.l"
 { update_column(); return QUESTION; }
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 268 "lexer/lexer.l"
+#line 265 "lexer/lexer.l"
 { 
     update_column();
     #if defined(TEST_PARSER) || defined(TEST_SEMANTIC)
@@ -1496,7 +1493,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 279 "lexer/lexer.l"
+#line 276 "lexer/lexer.l"
 { 
     update_column();
     #if defined(TEST_PARSER) || defined(TEST_SEMANTIC)
@@ -1511,7 +1508,7 @@ YY_RULE_SETUP
 case 83:
 /* rule 83 can match eol */
 YY_RULE_SETUP
-#line 290 "lexer/lexer.l"
+#line 287 "lexer/lexer.l"
 { 
     update_column();
     char ch;
@@ -1546,7 +1543,7 @@ YY_RULE_SETUP
 case 84:
 /* rule 84 can match eol */
 YY_RULE_SETUP
-#line 321 "lexer/lexer.l"
+#line 318 "lexer/lexer.l"
 { 
     update_column();
     // Remover comillas y procesar caracteres de escape
@@ -1586,7 +1583,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 358 "lexer/lexer.l"
+#line 355 "lexer/lexer.l"
 { 
     update_column();
     #if defined(TEST_PARSER) || defined(TEST_SEMANTIC)
@@ -1600,7 +1597,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 369 "lexer/lexer.l"
+#line 366 "lexer/lexer.l"
 { 
     update_column();
     char error_msg[100];
@@ -1613,10 +1610,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 379 "lexer/lexer.l"
+#line 376 "lexer/lexer.l"
 ECHO;
 	YY_BREAK
-#line 1620 "lexer/lex.yy.c"
+#line 1617 "lexer/lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2621,7 +2618,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 379 "lexer/lexer.l"
+#line 376 "lexer/lexer.l"
 
 
 void update_column() {

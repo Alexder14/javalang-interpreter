@@ -93,9 +93,6 @@
 #define CHAR_LITERAL 81
 #endif
 
-/* Variables globales para manejo de posición */
-int line_num = 1;
-int col_num = 1;
 
 /* Funciones auxiliares */
 void update_column();

@@ -3025,7 +3025,6 @@ yyreturn:
 
 
 void yyerror(const char *s) {
-    has_syntax_errors = true;
-    add_error(ERROR_SYNTACTIC, s, "Global", line_num, col_num);
     fprintf(stderr, "Error sintáctico en línea %d, columna %d: %s\n", line_num, col_num, s);
+    add_error(ERROR_SYNTACTIC, s, "Global", line_num, col_num);
 }

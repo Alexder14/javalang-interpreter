@@ -1,13 +1,11 @@
 #include "ast.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>  // AGREGAR ESTE INCLUDE
+#include <string.h>
 
 // Variables globales
 ASTNode *ast_root = NULL;
 bool has_syntax_errors = false;
-int line_num = 1;
-int col_num = 1;
 
 // Función base para crear nodos
 ASTNode* create_node(NodeType type, int line, int col) {
@@ -21,11 +19,6 @@ ASTNode* create_node(NodeType type, int line, int col) {
     node->line = line;
     node->column = col;
     node->next = NULL;
-    
-    // Inicializar listas
-    node->children = NULL;
-    node->child_count = 0;
-    node->child_capacity = 0;
     
     // Inicializar datos específicos del tipo
     memset(&node->data, 0, sizeof(node->data));
@@ -58,13 +51,13 @@ ASTNode* create_var_decl_node(const char *type, const char *name, ASTNode *init,
     return node;
 }
 
-// Crear nodo de declaración de función
+// Crear nodo de declaración de función - CORREGIDO
 ASTNode* create_function_decl_node(const char *return_type, const char *name, ASTNode *params, ASTNode *body) {
-    ASTNode *node = create_node(NODE_FUNCTION_DECL, line_num, col_num);  // CORREGIR NOMBRE
-    node->data.function_decl.return_type = strdup(return_type);
-    node->data.function_decl.name = strdup(name);
-    node->data.function_decl.parameters = params;
-    node->data.function_decl.body = body;
+    ASTNode *node = create_node(NODE_FUNCTION_DECL, line_num, col_num);
+    node->data.func_decl.return_type = strdup(return_type);  // CORREGIDO: func_decl
+    node->data.func_decl.name = strdup(name);               // CORREGIDO: func_decl
+    node->data.func_decl.parameters = params;               // CORREGIDO: func_decl
+    node->data.func_decl.body = body;                       // CORREGIDO: func_decl
     return node;
 }
 
@@ -156,7 +149,7 @@ ASTNode* create_array_access_node(ASTNode *array, ASTNode *index) {
     return node;
 }
 
-// Crear nodos de literales
+// Crear literales
 ASTNode* create_int_literal_node(int value) {
     ASTNode *node = create_node(NODE_INT_LITERAL, line_num, col_num);
     node->data.int_literal.value = value;
@@ -192,7 +185,6 @@ ASTNode* create_null_literal_node() {
     return node;
 }
 
-// Crear nodo identificador
 ASTNode* create_identifier_node(const char *name) {
     ASTNode *node = create_node(NODE_IDENTIFIER, line_num, col_num);
     node->data.identifier.name = strdup(name);
@@ -201,7 +193,7 @@ ASTNode* create_identifier_node(const char *name) {
 
 // Crear nodo de lista
 ASTNode* create_list_node() {
-    ASTNode *node = create_node(NODE_LIST, line_num, col_num);  // CORREGIR NOMBRE
+    ASTNode *node = create_node(NODE_LIST, line_num, col_num);
     node->data.list.items = NULL;
     node->data.list.count = 0;
     node->data.list.capacity = 0;
@@ -210,15 +202,12 @@ ASTNode* create_list_node() {
 
 // Agregar elemento a lista
 void add_to_list(ASTNode *list, ASTNode *item) {
-    if (!list || list->type != NODE_LIST || !item) {  // CORREGIR NOMBRE
-        return;
-    }
+    if (!list || list->type != NODE_LIST) return;
     
-    // Expandir capacidad si es necesario
     if (list->data.list.count >= list->data.list.capacity) {
-        int new_capacity = list->data.list.capacity == 0 ? 4 : list->data.list.capacity * 2;
-        list->data.list.items = realloc(list->data.list.items, new_capacity * sizeof(ASTNode*));
-        list->data.list.capacity = new_capacity;
+        list->data.list.capacity = list->data.list.capacity == 0 ? 8 : list->data.list.capacity * 2;
+        list->data.list.items = realloc(list->data.list.items, 
+                                       list->data.list.capacity * sizeof(ASTNode*));
     }
     
     list->data.list.items[list->data.list.count++] = item;
@@ -226,7 +215,7 @@ void add_to_list(ASTNode *list, ASTNode *item) {
 
 // Obtener elemento de lista
 ASTNode* get_from_list(ASTNode *list, int index) {
-    if (!list || list->type != NODE_LIST || index < 0 || index >= list->data.list.count) {
+    if (!list || index < 0 || index >= list->data.list.count) {
         return NULL;
     }
     return list->data.list.items[index];
@@ -234,17 +223,14 @@ ASTNode* get_from_list(ASTNode *list, int index) {
 
 // Obtener tamaño de lista
 int get_list_size(ASTNode *list) {
-    if (!list || list->type != NODE_LIST) {
-        return 0;
-    }
-    return list->data.list.count;
+    return list ? list->data.list.count : 0;
 }
 
-// Imprimir AST
+// Imprimir AST - CORREGIDO
 void print_ast(ASTNode *node, int depth) {
     if (!node) return;
     
-    // Imprimir indentación
+    // Indentación
     for (int i = 0; i < depth; i++) {
         printf("  ");
     }
@@ -252,64 +238,35 @@ void print_ast(ASTNode *node, int depth) {
     switch (node->type) {
         case NODE_PROGRAM:
             printf("PROGRAM\n");
-            if (node->data.program.body) {
-                print_ast(node->data.program.body, depth + 1);
-            }
+            print_ast(node->data.program.body, depth + 1);
             break;
             
         case NODE_MAIN_CLASS:
             printf("MAIN_CLASS\n");
-            if (node->data.main_class.body) {
-                print_ast(node->data.main_class.body, depth + 1);
-            }
+            print_ast(node->data.main_class.body, depth + 1);
             break;
             
         case NODE_VAR_DECL:
-            printf("VAR_DECL: %s %s", node->data.var_decl.data_type, node->data.var_decl.name);
-            if (node->data.var_decl.is_array) printf("[]");
+            printf("VAR_DECL: %s %s", 
+                   node->data.var_decl.data_type,
+                   node->data.var_decl.name);
+            if (node->data.var_decl.is_array) {
+                printf("[]");
+            }
             printf("\n");
             if (node->data.var_decl.init_value) {
                 print_ast(node->data.var_decl.init_value, depth + 1);
             }
             break;
             
-        case NODE_FUNCTION_DECL:  // CORREGIR NOMBRE
-            printf("FUNCTION_DECL: %s %s\n", node->data.function_decl.return_type, node->data.function_decl.name);
-            if (node->data.function_decl.parameters) {
-                print_ast(node->data.function_decl.parameters, depth + 1);
+        case NODE_FUNCTION_DECL:  // CORREGIDO
+            printf("FUNCTION_DECL: %s %s\n", node->data.func_decl.return_type, node->data.func_decl.name);
+            if (node->data.func_decl.parameters) {
+                print_ast(node->data.func_decl.parameters, depth + 1);
             }
-            if (node->data.function_decl.body) {
-                print_ast(node->data.function_decl.body, depth + 1);
+            if (node->data.func_decl.body) {
+                print_ast(node->data.func_decl.body, depth + 1);
             }
-            break;
-            
-        case NODE_PARAMETER:
-            printf("PARAMETER: %s %s", node->data.parameter.data_type, node->data.parameter.name);
-            if (node->data.parameter.is_array) printf("[]");
-            printf("\n");
-            break;
-            
-        case NODE_IF_STMT:
-            printf("IF\n");
-            print_ast(node->data.if_stmt.condition, depth + 1);
-            print_ast(node->data.if_stmt.then_stmt, depth + 1);
-            if (node->data.if_stmt.else_stmt) {
-                print_ast(node->data.if_stmt.else_stmt, depth + 1);
-            }
-            break;
-            
-        case NODE_WHILE_STMT:
-            printf("WHILE\n");
-            print_ast(node->data.while_stmt.condition, depth + 1);
-            print_ast(node->data.while_stmt.body, depth + 1);
-            break;
-            
-        case NODE_FOR_STMT:
-            printf("FOR\n");
-            if (node->data.for_stmt.init) print_ast(node->data.for_stmt.init, depth + 1);
-            if (node->data.for_stmt.condition) print_ast(node->data.for_stmt.condition, depth + 1);
-            if (node->data.for_stmt.update) print_ast(node->data.for_stmt.update, depth + 1);
-            if (node->data.for_stmt.body) print_ast(node->data.for_stmt.body, depth + 1);
             break;
             
         case NODE_ASSIGNMENT:
@@ -337,18 +294,12 @@ void print_ast(ASTNode *node, int depth) {
             }
             break;
             
-        case NODE_ARRAY_ACCESS:
-            printf("ARRAY_ACCESS\n");
-            print_ast(node->data.array_access.array, depth + 1);
-            print_ast(node->data.array_access.index, depth + 1);
-            break;
-            
         case NODE_INT_LITERAL:
             printf("INT_LITERAL: %d\n", node->data.int_literal.value);
             break;
             
         case NODE_FLOAT_LITERAL:
-            printf("FLOAT_LITERAL: %f\n", node->data.float_literal.value);
+            printf("FLOAT_LITERAL: %.2f\n", node->data.float_literal.value);
             break;
             
         case NODE_STRING_LITERAL:
@@ -371,35 +322,32 @@ void print_ast(ASTNode *node, int depth) {
             printf("IDENTIFIER: %s\n", node->data.identifier.name);
             break;
             
-        case NODE_LIST:  // CORREGIR NOMBRE
+        case NODE_LIST:
             printf("LIST (%d items)\n", node->data.list.count);
             for (int i = 0; i < node->data.list.count; i++) {
                 print_ast(node->data.list.items[i], depth + 1);
             }
             break;
             
-        case NODE_RETURN_STMT:
-            printf("RETURN\n");
-            if (node->data.return_stmt.value) {
-                print_ast(node->data.return_stmt.value, depth + 1);
+        case NODE_BLOCK:
+            printf("BLOCK (%d statements)\n", node->data.block.count);
+            for (int i = 0; i < node->data.block.count; i++) {
+                print_ast(node->data.block.statements[i], depth + 1);
             }
-            break;
-            
-        case NODE_BREAK_STMT:
-            printf("BREAK\n");
-            break;
-            
-        case NODE_CONTINUE_STMT:
-            printf("CONTINUE\n");
             break;
             
         default:
             printf("UNKNOWN_NODE_TYPE: %d\n", node->type);
             break;
     }
+    
+    // Imprimir siguiente nodo si existe
+    if (node->next) {
+        print_ast(node->next, depth);
+    }
 }
 
-// Liberar memoria del AST
+// Liberar memoria del AST - CORREGIDO
 void free_ast(ASTNode *node) {
     if (!node) return;
     
@@ -410,16 +358,11 @@ void free_ast(ASTNode *node) {
             free_ast(node->data.var_decl.init_value);
             break;
             
-        case NODE_FUNCTION_DECL:  // CORREGIR NOMBRE
-            free(node->data.function_decl.return_type);
-            free(node->data.function_decl.name);
-            free_ast(node->data.function_decl.parameters);
-            free_ast(node->data.function_decl.body);
-            break;
-            
-        case NODE_PARAMETER:
-            free(node->data.parameter.data_type);
-            free(node->data.parameter.name);
+        case NODE_FUNCTION_DECL:  // CORREGIDO
+            free(node->data.func_decl.return_type);
+            free(node->data.func_decl.name);
+            free_ast(node->data.func_decl.parameters);
+            free_ast(node->data.func_decl.body);
             break;
             
         case NODE_ASSIGNMENT:
@@ -439,57 +382,84 @@ void free_ast(ASTNode *node) {
             free_ast(node->data.unary_op.operand);
             break;
             
-        case NODE_FUNCTION_CALL:
-            free(node->data.func_call.name);
-            free_ast(node->data.func_call.arguments);
+        case NODE_IDENTIFIER:
+            free(node->data.identifier.name);
             break;
             
         case NODE_STRING_LITERAL:
             free(node->data.string_literal.value);
             break;
             
-        case NODE_IDENTIFIER:
-            free(node->data.identifier.name);
+        case NODE_FUNCTION_CALL:
+            free(node->data.func_call.name);
+            free_ast(node->data.func_call.arguments);
             break;
             
-        case NODE_LIST:  // CORREGIR NOMBRE
+        case NODE_BLOCK:
+            for (int i = 0; i < node->data.block.count; i++) {
+                free_ast(node->data.block.statements[i]);
+            }
+            free(node->data.block.statements);
+            break;
+            
+        case NODE_LIST:
             for (int i = 0; i < node->data.list.count; i++) {
                 free_ast(node->data.list.items[i]);
             }
             free(node->data.list.items);
             break;
             
-        // Agregar otros casos según sea necesario
+        // Agregar más casos según se necesiten
         default:
-            // Para nodos con hijos, liberar recursivamente
-            if (node->children) {
-                for (int i = 0; i < node->child_count; i++) {
-                    free_ast(node->children[i]);
-                }
-                free(node->children);
-            }
+            // Para nodos sin memoria dinámica específica
             break;
+    }
+    
+    // Liberar siguiente nodo si existe
+    if (node->next) {
+        free_ast(node->next);
     }
     
     free(node);
 }
 
-// Clonar AST (implementación básica)
+// Clonar AST - SIMPLIFICADO
 ASTNode* clone_ast(ASTNode *node) {
     if (!node) return NULL;
     
-    ASTNode *clone = malloc(sizeof(ASTNode));
-    memcpy(clone, node, sizeof(ASTNode));
+    // Crear nuevo nodo del mismo tipo
+    ASTNode *clone = create_node(node->type, node->line, node->column);
     
-    // Clonar campos de string
+    // Solo clonar los casos más básicos por ahora
     switch (node->type) {
+        case NODE_INT_LITERAL:
+            clone->data.int_literal.value = node->data.int_literal.value;
+            break;
+            
+        case NODE_FLOAT_LITERAL:
+            clone->data.float_literal.value = node->data.float_literal.value;
+            break;
+            
         case NODE_STRING_LITERAL:
             clone->data.string_literal.value = strdup(node->data.string_literal.value);
             break;
+            
         case NODE_IDENTIFIER:
             clone->data.identifier.name = strdup(node->data.identifier.name);
             break;
-        // Agregar otros casos según sea necesario
+            
+        case NODE_BOOLEAN_LITERAL:
+            clone->data.boolean_literal.value = node->data.boolean_literal.value;
+            break;
+            
+        case NODE_CHAR_LITERAL:
+            clone->data.char_literal.value = node->data.char_literal.value;
+            break;
+            
+        default:
+            // Para otros tipos, simplemente crear el nodo vacío
+            // Esto se puede expandir según se necesite
+            break;
     }
     
     return clone;
