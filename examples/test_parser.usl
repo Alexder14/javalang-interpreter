@@ -1,0 +1,55 @@
+// Test completo de sintaxis JavaLang - Fase 4
+// Este archivo debe ser reconocido correctamente por el parser
+
+public static void main(String[] args) {
+    // Declaraciones de variables
+    int contador = 0;
+    float precio = 15.99;
+    boolean activo = true;
+    String nombre = "JavaLang";
+    
+    // Asignaciones
+    contador = contador + 1;
+    precio = precio * 1.15;
+    
+    // Estructura condicional
+    if (contador > 0) {
+        println("Contador es positivo");
+    } else {
+        println("Contador no es positivo");
+    }
+    
+    // Bucle while
+    while (contador < 5) {
+        print("Iteración: ");
+        println(contador);
+        contador = contador + 1;
+    }
+    
+    // Bucle for
+    for (int i = 0; i < 3; i = i + 1) {
+        println("For loop: " + i);
+    }
+    
+    // Switch case
+    switch (contador) {
+        case 1:
+            println("Uno");
+            break;
+        case 5:
+            println("Cinco");
+            break;
+        default:
+            println("Otro número");
+    }
+}
+
+// Función adicional
+public static int calcular(int a, int b) {
+    int resultado = a + b;
+    return resultado;
+}
+
+public static void mostrarMensaje() {
+    println("¡Hola desde JavaLang!");
+}
