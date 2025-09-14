@@ -1,0 +1,61 @@
+
+public static void main(String[] args) {
+    int contador = 0;
+    float precio = 19.99f;
+    boolean activo = true;
+    String mensaje = "JavaLang funciona!";
+    
+    contador = contador + 1;
+    precio = precio * 1.1f;
+    activo = !activo;
+    
+    if (contador > 0) {
+        mensaje = "Contador positivo";
+    }
+    
+    while (contador < 5) {
+        contador++;
+    }
+    
+    int[] numeros = new int[3];
+    numeros[0] = 10;
+    numeros[1] = 20;
+    numeros[2] = 30;
+    
+    System.out.println(mensaje);
+    System.out.println(contador);
+}
+EOF
+
+# Crear archivo con errores
+cat > examples/semantico_errores.usl << 'EOF'
+public static void main(String[] args) {
+    int x = 5;
+    float y = 3.14f;
+    String texto = "hola";
+    
+    x = "texto";
+    z = 10;
+    int resultado = x + texto;
+    int x = 20;
+    arreglo[0] = 5;
+    int division = x / 0;
+}
+EOF
+
+# Crear archivo de ámbitos
+cat > examples/semantico_ambitos.usl << 'EOF'
+public static void main(String[] args) {
+    int global = 10;
+    
+    if (global > 5) {
+        int local = 20;
+        global = local + 5;
+    }
+    
+    for (int i = 0; i < 3; i++) {
+        int temporal = i * 2;
+        global = temporal;
+    }
+}
+EOF

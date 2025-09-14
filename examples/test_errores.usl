@@ -1,0 +1,6 @@
+public static void main(String[] args) {
+    int x = 5;
+    String texto = "hola";
+    x = texto;  // Error semántico: incompatibilidad de tipos
+    y = 10;     // Error semántico: variable no declarada
+}
