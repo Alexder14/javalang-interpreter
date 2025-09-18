@@ -1,10 +1,12 @@
 #ifndef JAVALANG_H
 #define JAVALANG_H
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 // Variables globales
 extern int line_num;
@@ -82,6 +84,10 @@ void check_variable_usage(const char *name, int line);
 void validate_assignment(const char *var, DataType expr_type);
 void print_symbol_table();
 void print_semantic_analysis();
+
+// Funciones de procesamiento
+int process_test_file(const char* filename);
+void print_final_summary();
 
 // Funciones built-in simuladas
 void process_println(ASTNode *args);
