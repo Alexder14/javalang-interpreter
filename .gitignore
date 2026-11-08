@@ -43,3 +43,29 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Solo local (no versionado)
+/advanced_javalang/
+/build_all.sh
+/compile.sh
+/compile_phase3.sh
+/compile_phase4.sh
+/compile_phase4_fixed.sh
+/diagnose_compilation.sh
+/setup.sh
+/setup_gui.sh
+/test_phase3.sh
+/parser/parser_simple.y
+/include/error_handler.h
+/include/gui.h
+/include/interpreter.h
+/include/symbol_table.h
+/src/error_handler.c
+/src/gui.c
+/src/interpreter.c
+/src/symbol_table.c
+/src/reports.h
+/include/ast_visualizer.h
+/src/ast_visualizer.c
+/backup*/
+*.backup*

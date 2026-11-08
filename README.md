@@ -1,27 +1,25 @@
 # JavaLang Compiler
 
-Compilador educativo para el lenguaje JavaLang desarrollado para el curso de Organización de Lenguajes y Compiladores 2.
+Compilador educativo para el lenguaje JavaLang (curso Organización de Lenguajes y Compiladores 2).
 
-## Características Implementadas
+## Fases implementadas
 
-- ✅ **Fase 1**: Configuración del entorno
-- ✅ **Fase 2**: Analizador léxico (Flex)
-- ✅ **Fase 3**: Analizador sintáctico y AST (Bison)
-- ✅ **Fase 4**: Análisis semántico y tabla de símbolos
+- **Fase 2**: análisis léxico (Flex) — `lexer/lexer.l`
+- **Fase 3**: análisis sintáctico y AST (Bison) — `parser/parser.y`, `src/ast.c`
+- **Fase 4**: análisis semántico y tabla de símbolos — `src/semantic.c`
 
-## Uso Rápido
+## Requisitos
+
+`gcc`, `make`, `flex`, `bison`
+
+## Uso
 
 ```bash
-# Compilar todo
-make all
-
-# Analizar un archivo
-./javalang_interpreter examples/test1.usl
-
-# Generar reportes completos
-./javalang_interpreter examples/test1.usl -reports -visualize
+make                                  # compila ./javalang_interpreter
+./javalang_interpreter archivo.usl    # analiza y genera reportes (*_errors.txt, *_ast.txt)
+make check-ejemplos                   # corre examples/ y tests/ (los *error* deben fallar)
+make clean
 ```
 
-## Documentación
-
-Ver `MANUAL_USUARIO.md` para documentación completa.
+Los reportes se generan junto al directorio de ejecución. Si Graphviz está instalado,
+también se puede visualizar el AST.
