@@ -3,7 +3,7 @@
 
 # Compilador y flags
 CC = gcc
-CFLAGS = -Wall -std=c99 -g -D_GNU_SOURCE
+CFLAGS = -Wall -std=c99 -g -D_GNU_SOURCE -DTEST_SEMANTIC
 INCLUDES = -Iinclude -Iparser
 LIBS = -lfl
 
@@ -79,7 +79,7 @@ install-deps:
 	@echo "   sudo apt-get install graphviz (opcional)"
 
 # Ejecutar tests básicos
-test: $(TARGET)
+check: $(TARGET)
 	@echo "🧪 Ejecutando tests básicos..."
 	@if [ -f examples/test1.usl ]; then \
 		echo "📝 Probando con examples/test1.usl"; \
@@ -119,3 +119,13 @@ help: info
 
 # Phony targets
 .PHONY: all clean clean-all test test-lexer install-deps info help
+# Pruebas: los ejemplos válidos deben compilar; los *error* deben fallar
+check-ejemplos: $(TARGET)
+	@fail=0; \
+	for f in examples/*.usl tests/test_files/*.usl; do \
+		case $$f in *error*) want=fail;; *) want=ok;; esac; \
+		if ./$(TARGET) $$f 2>&1 | grep -q "Compilación exitosa"; then got=ok; else got=fail; fi; \
+		if [ $$got = $$want ]; then echo "PASS $$f"; else echo "FAIL $$f (esperado $$want)"; fail=1; fi; \
+	done; \
+	rm -f *_ast.txt *_errors.txt; \
+	exit $$fail

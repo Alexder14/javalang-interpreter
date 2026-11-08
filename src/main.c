@@ -137,7 +137,16 @@ void process_file(const char *filename) {
     
     if (!semantic_ok || analyzer->error_count > 0) {
         printf("❌ Errores encontrados en análisis semántico (%d errores)\n", analyzer->error_count);
-        // Los errores del analizador semántico se manejan internamente
+        // Pasar los errores semánticos (en orden de detección) al sistema de reportes
+        int n = 0;
+        SemanticError *list[1024];
+        for (SemanticError *e = analyzer->errors; e && n < 1024; e = e->next) list[n++] = e;
+        for (int i = n - 1; i >= 0; i--) {
+            char msg[512];
+            snprintf(msg, sizeof(msg), "%s%s%s", list[i]->message,
+                     list[i]->context[0] ? ": " : "", list[i]->context);
+            add_error(ERROR_SEMANTIC, msg, "Global", list[i]->line, list[i]->column);
+        }
     } else {
         printf("✅ Análisis semántico completado sin errores\n");
     }
