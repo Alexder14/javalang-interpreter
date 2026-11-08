@@ -1,0 +1,18 @@
+public static void main() {
+    System.out.println(doble(21));
+    saludar();
+    System.out.println(esPar(7));
+}
+
+public int doble(int n) {
+    return n * 2;
+}
+
+public void saludar() {
+    System.out.println("hola");
+    return;
+}
+
+boolean esPar(int n) {
+    return n % 2 == 0;
+}

@@ -1,0 +1,1 @@
+La función 'suma' espera 2 argumento(s) y recibió 1

@@ -66,30 +66,74 @@ const char* get_error_type_name(ErrorType type) {
     }
 }
 
+/* ---- Utilidades de tablas (anchos medidos en caracteres UTF-8, no en bytes) ---- */
+
+static int utf8_len(const char *s) {
+    int n = 0;
+    for (; *s; s++) if (((unsigned char)*s & 0xC0) != 0x80) n++;
+    return n;
+}
+
+// Imprime `s` en una celda de `width` caracteres (recorta con "..." y rellena con espacios)
+void fprint_cell(FILE *f, const char *s, int width) {
+    int len = utf8_len(s);
+    if (len <= width) {
+        fputs(s, f);
+        for (int i = len; i < width; i++) fputc(' ', f);
+        return;
+    }
+    int keep = width > 3 ? width - 3 : width, seen = 0;
+    for (const char *p = s; *p; p++) {
+        if (((unsigned char)*p & 0xC0) != 0x80) {
+            if (seen == keep) break;
+            seen++;
+        }
+        fputc(*p, f);
+    }
+    if (width > 3) fputs("...", f);
+}
+
+// Errores en orden cronológico (la lista enlazada guarda el más reciente primero)
+int get_errors_chronological(Error **out, int max) {
+    int n = 0;
+    for (Error *e = error_list; e && n < max; e = e->next) out[n++] = e;
+    for (int i = 0; i < n / 2; i++) { Error *t = out[i]; out[i] = out[n - 1 - i]; out[n - 1 - i] = t; }
+    return n;
+}
+
+// Tabla de errores: No., Descripción, Ámbito, Línea, Columna (+ tipo de error)
+void write_error_table(FILE *f) {
+    Error *errs[MAX_ERRORS + 1];
+    int n = get_errors_chronological(errs, MAX_ERRORS);
+    const int wd = 70, wa = 14;
+    const char *sep = "+-----+------------------------------------------------------------------------+----------------+-------+---------+-------------+";
+    fprintf(f, "%s\n", sep);
+    fprintf(f, "| No. | "); fprint_cell(f, "Descripcion", wd);
+    fprintf(f, " | "); fprint_cell(f, "Ambito", wa);
+    fprintf(f, " | Linea | Columna | Tipo        |\n");
+    fprintf(f, "%s\n", sep);
+    for (int i = 0; i < n; i++) {
+        char num[16];
+        snprintf(num, sizeof num, "%d", i + 1);
+        fprintf(f, "| "); fprint_cell(f, num, 3);
+        fprintf(f, " | "); fprint_cell(f, errs[i]->message, wd);
+        fprintf(f, " | "); fprint_cell(f, errs[i]->scope, wa);
+        fprintf(f, " | %-5d | %-7d | ", errs[i]->line, errs[i]->column);
+        fprint_cell(f, get_error_type_name(errs[i]->type), 11);
+        fprintf(f, " |\n");
+    }
+    fprintf(f, "%s\n", sep);
+}
+
 // Imprimir errores
 void print_errors() {
     if (!error_list) {
         printf("✅ No se encontraron errores\n");
         return;
     }
-    
     printf("\n🚨 ERRORES ENCONTRADOS (%d):\n", error_count);
-    printf("═══════════════════════════════════════════════════════════\n");
-    
-    Error *current = error_list;
-    int error_num = 1;
-    
-    while (current) {
-        printf("\n📍 Error #%d [%s]\n", error_num++, get_error_type_name(current->type));
-        printf("   📍 Línea: %d, Columna: %d\n", current->line, current->column);
-        printf("   📍 Ámbito: %s\n", current->scope);
-        printf("   📍 Mensaje: %s\n", current->message);
-        printf("   ────────────────────────────────────────────────────\n");
-        
-        current = current->next;
-    }
-    
-    printf("\n📊 Total de errores: %d\n", error_count);
+    write_error_table(stdout);
+    printf("📊 Total de errores: %d\n", error_count);
 }
 
 // Limpiar errores
@@ -116,25 +160,14 @@ void generate_error_report(const char* filename) {
         return;
     }
     
-    fprintf(file, "REPORTE DE ERRORES - JAVALANG COMPILER\n");
-    fprintf(file, "=====================================\n\n");
-    fprintf(file, "Total de errores encontrados: %d\n\n", error_count);
-    
+    fprintf(file, "REPORTE DE ERRORES - JAVALANG\n");
+    fprintf(file, "=============================\n\n");
     if (error_list) {
-        Error *current = error_list;
-        int error_num = 1;
-        
-        while (current) {
-            fprintf(file, "Error #%d: %s\n", error_num++, get_error_type_name(current->type));
-            fprintf(file, "  Línea: %d, Columna: %d\n", current->line, current->column);
-            fprintf(file, "  Ámbito: %s\n", current->scope);
-            fprintf(file, "  Descripción: %s\n\n", current->message);
-            
-            current = current->next;
-        }
+        write_error_table(file);
     } else {
         fprintf(file, "No se encontraron errores.\n");
     }
+    fprintf(file, "\nTotal de errores: %d\n", error_count);
     
     fclose(file);
     printf("📄 Reporte de errores generado: %s\n", filename);

@@ -1,0 +1,5 @@
+public static void main(String[] args) {
+    int[] a = null;
+    System.out.println("antes");
+    System.out.println(a.length);
+}

@@ -1,0 +1,26 @@
+public static void main(String[] args) {
+    int[] numeros = {2, 5, 7, 8, 11, 12};
+    System.out.println(numeros.length);
+    System.out.println(Arrays.indexOf(numeros, 7));
+    System.out.println(Arrays.indexOf(numeros, 4));
+    int[] ampliado = numeros.add(20);
+    System.out.println(ampliado);
+    System.out.println(numeros.length + " " + ampliado.length);
+    String[] frutas = {"manzana", "banana", "cereza"};
+    System.out.println(String.join(",", frutas));
+    System.out.println(String.join("-", "2025", "08", "03"));
+    System.out.println(String.join(" | ", "10", "20", "30"));
+    int suma = 0;
+    for (int n : numeros) {
+        suma += n;
+    }
+    System.out.println(suma);
+    int[][] m = {{1, 2}, {3, 4}};
+    int total = 0;
+    for (int[] fila : m) {
+        for (int v : fila) {
+            total += v;
+        }
+    }
+    System.out.println(total);
+}

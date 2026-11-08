@@ -105,15 +105,17 @@ int token_count = 0;
 /* Variable global para valor de tokens */
 #ifdef TEST_PARSER
 extern YYSTYPE yylval;
+extern YYLTYPE yylloc;
 #elif defined(TEST_SEMANTIC)
 extern YYSTYPE yylval;
+extern YYLTYPE yylloc;
 #endif
 
 %}
 
 /* Expresiones regulares básicas */
 DIGIT           [0-9]
-LETTER          [a-zA-Z]
+LETTER          [a-zA-Z_]
 IDENTIFIER_CHAR [a-zA-Z0-9_]
 NEWLINE         \n
 WHITESPACE      [ \t\r]
@@ -228,6 +230,11 @@ MULTI_LINE_COMMENT  "/*"([^*]|\*+[^*/])*\*+"/"
 "*="                    { update_column(); return MULT_ASSIGN; }
 "/="                    { update_column(); return DIV_ASSIGN; }
 "%="                    { update_column(); return MOD_ASSIGN; }
+"&="                    { update_column(); return AND_ASSIGN; }
+"|="                    { update_column(); return OR_ASSIGN; }
+"^="                    { update_column(); return XOR_ASSIGN; }
+"<<="                   { update_column(); return LSHIFT_ASSIGN; }
+">>="                   { update_column(); return RSHIFT_ASSIGN; }
 "=="                    { update_column(); return EQUAL; }
 "!="                    { update_column(); return NOT_EQUAL; }
 "<="                    { update_column(); return LESS_EQUAL; }
@@ -368,7 +375,7 @@ MULTI_LINE_COMMENT  "/*"([^*]|\*+[^*/])*\*+"/"
     update_column();
     char error_msg[100];
     snprintf(error_msg, sizeof(error_msg), "Carácter no válido: '%c' (ASCII %d)", yytext[0], yytext[0]);
-    add_error(ERROR_LEXICAL, error_msg, "Global", line_num, col_num);
+    add_error(ERROR_LEXICAL, error_msg, "Global", line_num, col_num - yyleng);
     #ifdef TEST_LEXER
     printf("❌ Error léxico en línea %d, columna %d: %s\n", line_num, col_num, error_msg);
     #endif
@@ -377,6 +384,13 @@ MULTI_LINE_COMMENT  "/*"([^*]|\*+[^*/])*\*+"/"
 %%
 
 void update_column() {
+#if defined(TEST_PARSER) || defined(TEST_SEMANTIC)
+    /* Posición de INICIO del token, para que el parser la copie a los nodos del AST */
+    yylloc.first_line = line_num;
+    yylloc.first_column = col_num;
+    yylloc.last_line = line_num;
+    yylloc.last_column = col_num + yyleng;
+#endif
     col_num += yyleng;
     token_count++;
 }

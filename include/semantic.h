@@ -16,6 +16,7 @@ typedef enum {
 typedef struct SemanticError {
     char *message;
     char *context;
+    char *scope;                 // Ámbito donde ocurrió (función); "Global" si no hay
     int line;
     int column;
     struct SemanticError *next;
@@ -32,6 +33,9 @@ typedef struct Symbol {
     bool is_initialized;         // Si está inicializada (para variables)
     bool is_array;               // Si es un arreglo
     int array_size;              // Tamaño del arreglo
+    int dims;                    // Dimensiones (0 = escalar, 1 = vector, 2 = matriz...)
+    bool is_const;               // Declarada con final
+    struct ASTNode *decl;        // Nodo del AST donde se declaró
     struct ASTNode *parameters;  // Parámetros (para funciones)
     struct ASTNode *value;       // Valor inicial
     struct Symbol *next;         // Siguiente en la tabla hash/lista
@@ -46,7 +50,8 @@ typedef struct SemanticAnalyzer {
     SemanticError *errors;       // Lista de errores semánticos
     int error_count;             // Contador de errores
     bool in_loop;                // Si estamos dentro de un bucle
-    bool in_function;            // Si estamos dentro de una función
+    bool in_function;            // Si estamos dentro de una función (o de main)
+    bool in_switch;              // Si estamos dentro de un switch
 } SemanticAnalyzer;
 
 // Funciones principales

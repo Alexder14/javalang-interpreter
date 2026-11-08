@@ -1,0 +1,21 @@
+public static void main(String[] args) {
+    int[][] matriz = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+    System.out.println(matriz[1][2]);
+    matriz[0][0] = 42;
+    System.out.println(matriz[0][0]);
+    int cubo[][][] = new int[2][3][4];
+    cubo[1][2][3] = 7;
+    System.out.println(cubo[1][2][3] + cubo[0][0][0]);
+    System.out.println(cubo.length + " " + cubo[0].length + " " + cubo[0][0].length);
+    float[][] mat = new float[2][2];
+    System.out.println(mat[1][1]);
+    char[] letras = new char[2];
+    letras[0] = 'a';
+    System.out.println(letras[0]);
+    String[] nombres = new String[2];
+    System.out.println(nombres[0]);
+    boolean[] flags = new boolean[2];
+    System.out.println(flags[1]);
+    matriz[2][1] += 10;
+    System.out.println(matriz[2][1]);
+}

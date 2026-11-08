@@ -1,4 +1,5 @@
 #include "ast.h"
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,7 +48,7 @@ ASTNode* create_var_decl_node(const char *type, const char *name, ASTNode *init,
     node->data.var_decl.name = strdup(name);
     node->data.var_decl.init_value = init;
     node->data.var_decl.is_array = is_array;
-    node->data.var_decl.array_size = array_size;
+    node->data.var_decl.array_size = (is_array && array_size < 1) ? 1 : array_size;
     return node;
 }
 
@@ -67,6 +68,7 @@ ASTNode* create_parameter_node(const char *type, const char *name, bool is_array
     node->data.parameter.data_type = strdup(type);
     node->data.parameter.name = strdup(name);
     node->data.parameter.is_array = is_array;
+    node->data.parameter.dims = is_array ? 1 : 0;
     return node;
 }
 
@@ -191,6 +193,34 @@ ASTNode* create_identifier_node(const char *name) {
     return node;
 }
 
+// Crear nodo for-each
+ASTNode* create_foreach_node(const char *type, const char *name, int dims, ASTNode *iterable, ASTNode *body) {
+    ASTNode *node = create_node(NODE_FOREACH_STMT, line_num, col_num);
+    node->data.foreach_stmt.data_type = strdup(type);
+    node->data.foreach_stmt.name = strdup(name);
+    node->data.foreach_stmt.dims = dims;
+    node->data.foreach_stmt.iterable = iterable;
+    node->data.foreach_stmt.body = body;
+    return node;
+}
+
+// Crear nodo de acceso a miembro (objeto.miembro)
+ASTNode* create_member_access_node(ASTNode *object, const char *member) {
+    ASTNode *node = create_node(NODE_MEMBER_ACCESS, line_num, col_num);
+    node->data.member_access.object = object;
+    node->data.member_access.member = strdup(member);
+    return node;
+}
+
+// Crear nodo de llamada a método (objeto.nombre(args))
+ASTNode* create_method_call_node(ASTNode *object, const char *name, ASTNode *args) {
+    ASTNode *node = create_node(NODE_METHOD_CALL, line_num, col_num);
+    node->data.method_call.object = object;
+    node->data.method_call.name = strdup(name);
+    node->data.method_call.arguments = args;
+    return node;
+}
+
 // Crear nodo de lista
 ASTNode* create_list_node() {
     ASTNode *node = create_node(NODE_LIST, line_num, col_num);
@@ -250,7 +280,7 @@ void print_ast(ASTNode *node, int depth) {
             printf("VAR_DECL: %s %s", 
                    node->data.var_decl.data_type,
                    node->data.var_decl.name);
-            if (node->data.var_decl.is_array) {
+            for (int d = 0; d < node->data.var_decl.array_size; d++) {
                 printf("[]");
             }
             printf("\n");
@@ -387,6 +417,22 @@ void print_ast(ASTNode *node, int depth) {
             printf("RETURN\n");
             print_ast(node->data.return_stmt.value, depth + 1);
             break;
+        case NODE_FOREACH_STMT:
+            printf("FOREACH: %s%s %s\n", node->data.foreach_stmt.data_type,
+                   node->data.foreach_stmt.dims > 1 ? "[][]..." : (node->data.foreach_stmt.dims ? "[]" : ""),
+                   node->data.foreach_stmt.name);
+            print_ast(node->data.foreach_stmt.iterable, depth + 1);
+            print_ast(node->data.foreach_stmt.body, depth + 1);
+            break;
+        case NODE_MEMBER_ACCESS:
+            printf("MEMBER_ACCESS: .%s\n", node->data.member_access.member);
+            print_ast(node->data.member_access.object, depth + 1);
+            break;
+        case NODE_METHOD_CALL:
+            printf("METHOD_CALL: .%s\n", node->data.method_call.name);
+            print_ast(node->data.method_call.object, depth + 1);
+            print_ast(node->data.method_call.arguments, depth + 1);
+            break;
         case NODE_ARRAY_ACCESS:
             printf("ARRAY_ACCESS\n");
             print_ast(node->data.array_access.array, depth + 1);
@@ -407,6 +453,17 @@ void print_ast(ASTNode *node, int depth) {
     if (node->next) {
         print_ast(node->next, depth);
     }
+}
+
+// Escribe el AST (como texto con sangría) en un archivo, redirigiendo temporalmente stdout
+void print_ast_file(ASTNode *root, FILE *f) {
+    fflush(stdout);
+    int saved = dup(STDOUT_FILENO);
+    dup2(fileno(f), STDOUT_FILENO);
+    print_ast(root, 0);
+    fflush(stdout);
+    dup2(saved, STDOUT_FILENO);
+    close(saved);
 }
 
 // Liberar memoria del AST - CORREGIDO
@@ -446,6 +503,24 @@ void free_ast(ASTNode *node) {
             
         case NODE_IDENTIFIER:
             free(node->data.identifier.name);
+            break;
+            
+        case NODE_FOREACH_STMT:
+            free(node->data.foreach_stmt.data_type);
+            free(node->data.foreach_stmt.name);
+            free_ast(node->data.foreach_stmt.iterable);
+            free_ast(node->data.foreach_stmt.body);
+            break;
+            
+        case NODE_MEMBER_ACCESS:
+            free(node->data.member_access.member);
+            free_ast(node->data.member_access.object);
+            break;
+            
+        case NODE_METHOD_CALL:
+            free(node->data.method_call.name);
+            free_ast(node->data.method_call.object);
+            free_ast(node->data.method_call.arguments);
             break;
             
         case NODE_STRING_LITERAL:

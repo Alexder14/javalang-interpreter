@@ -1,0 +1,19 @@
+public static void main(String[] args) {
+    String a = "hola";
+    String b = "ho" + "la";
+    System.out.println(a.equals(b));
+    System.out.println(a.equals("adios"));
+    float counter = 0.5f;
+    int c2 = (int) counter;
+    System.out.println(c2);
+    double d = 7.9;
+    System.out.println((int) d);
+    char ch = (char) 66;
+    System.out.println(ch);
+    System.out.println((int) 'A');
+    String nulo = (String) null;
+    System.out.println(nulo);
+    System.out.println(Double.parseDouble("2.5") * 2);
+    System.out.println(Integer.parseInt("40") + 2);
+    System.out.println(String.valueOf(123) + String.valueOf(true));
+}

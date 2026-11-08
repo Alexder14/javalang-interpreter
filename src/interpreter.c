@@ -25,9 +25,10 @@ typedef struct Value {
 } Value;
 
 typedef struct Array {
-    VKind elem;
+    VKind base;     /* tipo escalar de los elementos hoja */
+    int dims;       /* dimensiones de ESTE arreglo: 1 = vector, 2 = matriz... */
     int len;
-    Value *items;
+    Value *items;   /* escalares de tipo base si dims == 1; subarreglos (V_ARRAY) si dims > 1 */
 } Array;
 
 static Value mkvoid(void)             { Value v; memset(&v, 0, sizeof v); v.k = V_VOID; return v; }
@@ -84,7 +85,8 @@ typedef enum { SIG_NONE, SIG_BREAK, SIG_CONTINUE, SIG_RETURN } Signal;
 
 typedef struct Var {
     const char *name;
-    VKind type;          /* tipo declarado (o tipo de los elementos si es arreglo) */
+    VKind type;          /* tipo declarado (o tipo base de los elementos si es arreglo) */
+    int dims;            /* dimensiones (0 = escalar) */
     bool is_array;
     Value val;
     int rep;             /* índice en la tabla de símbolos del reporte */
@@ -104,6 +106,7 @@ typedef struct { const char *name; ASTNode *node; } FuncEntry;
 typedef struct {
     ASTNode *site;       /* nodo de la declaración (una fila por declaración) */
     char *id;
+    const char *kind;    /* Variable, Parámetro, Constante, Función */
     int depth;
     char *func;
     char *type;
@@ -270,7 +273,7 @@ static Value coerce_to(VKind t, Value v, ASTNode *n) {
             break;
         case V_CHAR:
             if (v.k == V_CHAR) return v;
-            if (v.k == V_INT) return mkchar((char)v.u.i);
+            if (is_num(v)) return mkchar((char)as_int64(v));
             break;
         case V_STRING:
             if (v.k == V_STRING || v.k == V_NULL) return v;
@@ -311,8 +314,8 @@ static const char *kind_name(VKind k) {
     }
 }
 
-static int rep_add(ASTNode *site, const char *id, int depth, const char *func,
-                   VKind type, bool is_array) {
+static int rep_add_typed(ASTNode *site, const char *kind, const char *id, int depth, const char *func,
+                         const char *type_name, int dims) {
     for (int i = 0; i < g_nrep; i++)
         if (g_rep[i].site == site) return i;    /* misma declaración (p. ej. en un bucle) */
     if (g_nrep == g_caprep) {
@@ -323,15 +326,22 @@ static int rep_add(ASTNode *site, const char *id, int depth, const char *func,
     memset(r, 0, sizeof *r);
     r->site = site;
     r->id = strdup(id);
+    r->kind = kind;
     r->depth = depth;
     r->func = strdup(func ? func : "Global");
-    char t[40];
-    snprintf(t, sizeof t, "%s%s", kind_name(type), is_array ? "[]" : "");
+    char t[64];
+    snprintf(t, sizeof t, "%s", type_name);
+    for (int d = 0; d < dims && strlen(t) < 58; d++) strcat(t, "[]");
     r->type = strdup(t);
     r->value = strdup("");
     r->line = site ? site->line : 0;
     r->column = site ? site->column : 0;
     return g_nrep++;
+}
+
+static int rep_add(ASTNode *site, const char *kind, const char *id, int depth, const char *func,
+                   VKind type, int dims) {
+    return rep_add_typed(site, kind, id, depth, func, kind_name(type), dims);
 }
 
 static void rep_set_value(int idx, Value v) {
@@ -364,22 +374,41 @@ static Var *lookup_var(const char *name) {
     return NULL;
 }
 
-static Var *declare_var(ASTNode *site, const char *name, VKind type, bool is_array, Value val) {
+static Var *declare_var(ASTNode *site, const char *kind, const char *name, VKind type, int dims, Value val) {
     Var *v = ialloc(sizeof(Var));
     v->name = istrdup(name);
     v->type = type;
-    v->is_array = is_array;
+    v->dims = dims;
+    v->is_array = dims > 0;
     v->val = val;
-    v->rep = rep_add(site, name, g_scope->depth, g_scope->fname, type, is_array);
+    v->rep = rep_add(site, kind, name, g_scope->depth, g_scope->fname, type, dims);
     v->next = g_scope->vars;
     g_scope->vars = v;
     rep_set_value(v->rep, val);
     return v;
 }
 
-static void register_function(ASTNode *fn) {
+static void register_function(ASTNode *fn, const char *scope_name) {
     for (int i = 0; i < g_nfuncs; i++)
         if (g_funcs[i].node == fn) return;
+    {   /* fila de la tabla de símbolos: nombre, "Función", tipo de retorno, ámbito, posición y firma */
+        int idx = rep_add_typed(fn, "Función", fn->data.func_decl.name, 0, scope_name,
+                                fn->data.func_decl.return_type, 0);
+        char sig[256] = "(";
+        ASTNode *ps = fn->data.func_decl.parameters;
+        int np = (ps && ps->type == NODE_LIST) ? ps->data.list.count : 0;
+        for (int i = 0; i < np; i++) {
+            ASTNode *p = ps->data.list.items[i];
+            char one[96];
+            snprintf(one, sizeof one, "%s%s%s %s", i ? ", " : "", p->data.parameter.data_type,
+                     p->data.parameter.dims > 1 ? "[][]" : (p->data.parameter.dims ? "[]" : ""),
+                     p->data.parameter.name);
+            if (strlen(sig) + strlen(one) < sizeof sig - 2) strcat(sig, one);
+        }
+        strcat(sig, ")");
+        free(g_rep[idx].value);
+        g_rep[idx].value = strdup(sig);
+    }
     g_funcs = realloc(g_funcs, (size_t)(g_nfuncs + 1) * sizeof(FuncEntry));
     g_funcs[g_nfuncs].name = fn->data.func_decl.name;
     g_funcs[g_nfuncs].node = fn;
@@ -465,6 +494,15 @@ static Value binary_values(const char *op, Value l, Value r, ASTNode *n) {
         rt_error(n, "Operandos inválidos para '%s'", op);
         return mkvoid();
     }
+    if (!strcmp(op, "<<") || !strcmp(op, ">>")) {
+        if ((l.k != V_INT && l.k != V_CHAR) || (r.k != V_INT && r.k != V_CHAR)) {
+            rt_error(n, "Operandos inválidos para '%s'", op);
+            return mkvoid();
+        }
+        int32_t a = (int32_t)as_int64(l);
+        int sh = (int)(as_int64(r) & 31);
+        return mkint(op[0] == '<' ? (int32_t)((uint32_t)a << sh) : (a >> sh));
+    }
     rt_error(n, "Operador desconocido '%s'", op);
     return mkvoid();
 }
@@ -512,13 +550,17 @@ static void lval_set(LVal *lv, Value v, ASTNode *n) {
             Value c = coerce_to(lv->v->type, v, n);
             if (!g_err) lv->v->val = c;
         }
+    } else if (lv->a->dims > 1) {
+        if (v.k != V_ARRAY && v.k != V_NULL) { rt_error(n, "Se esperaba un arreglo"); return; }
+        lv->a->items[lv->idx] = v;
     } else {
-        Value c = coerce_to(lv->a->elem, v, n);
+        Value c = coerce_to(lv->a->base, v, n);
         if (!g_err) lv->a->items[lv->idx] = c;
     }
 }
 
-static VKind lval_kind(LVal *lv) { return lv->v ? lv->v->type : lv->a->elem; }
+static VKind lval_kind(LVal *lv) { return lv->v ? lv->v->type : (lv->a->dims > 1 ? V_ARRAY : lv->a->base); }
+static bool lval_is_array(LVal *lv) { return lv->v ? lv->v->is_array : lv->a->dims > 1; }
 
 static Value eval_assignment(ASTNode *n) {
     ASTNode *left = n->data.assignment.left;
@@ -529,11 +571,13 @@ static Value eval_assignment(ASTNode *n) {
     if (!lval_resolve(left, &lv)) return mkvoid();
     Value result = rhs;
     if (op && strcmp(op, "=") != 0) {
-        char bop[3] = { op[0], '\0', '\0' };
+        char bop[4] = { 0 };
+        size_t blen = strlen(op) - 1;                    /* "<<=" -> "<<", "+=" -> "+" */
+        memcpy(bop, op, blen < 3 ? blen : 3);
         Value cur = lval_get(&lv);
         result = binary_values(bop, cur, rhs, n);
         if (g_err) return mkvoid();
-        if (lval_kind(&lv) != V_STRING && !(lv.v && lv.v->is_array)) {
+        if (lval_kind(&lv) != V_STRING && !lval_is_array(&lv)) {
             result = coerce_to(lval_kind(&lv), result, n);   /* cast implícito de +=, -=, ... */
             if (g_err) return mkvoid();
         }
@@ -560,6 +604,14 @@ static Value eval_unary(ASTNode *n) {
 
     Value v = eval(operand);
     if (g_err) return mkvoid();
+    if (op[0] == '(') {                                    /* cast: (tipo) expresión */
+        char tn[24];
+        size_t len = strcspn(op + 1, ")");
+        snprintf(tn, sizeof tn, "%.*s", (int)(len < 23 ? len : 23), op + 1);
+        VKind tk = kind_from_name(tn);
+        if (tk == V_STRING || tk == V_BOOL) return v;      /* (String) null, (boolean) b */
+        return coerce_to(tk, v, n);                        /* (int) 0.5f -> 0 */
+    }
     if (!strcmp(op, "!")) {
         if (v.k != V_BOOL) { rt_error(n, "'!' requiere un booleano"); return mkvoid(); }
         return mkbool(!v.u.b);
@@ -598,31 +650,87 @@ static Value eval_binary(ASTNode *n) {
     return binary_values(op, l, r, n);
 }
 
-static Value make_array(ASTNode *init, VKind elem, ASTNode *site) {
-    ASTNode *vals = init->data.array_init.values;
+/* Reserva un arreglo de `dims` dimensiones con longitudes lens[level..] y valores por defecto */
+static Array *alloc_nd(VKind base, int dims, const int *lens, int level) {
+    Array *a = ialloc(sizeof(Array));
+    a->base = base;
+    a->dims = dims;
+    a->len = lens[level];
+    a->items = ialloc((size_t)(a->len + 1) * sizeof(Value));
+    for (int i = 0; i < a->len; i++)
+        a->items[i] = (dims == 1) ? default_value(base) : mkarray(alloc_nd(base, dims - 1, lens, level + 1));
+    return a;
+}
+
+/* Literal {…}: anidado una vez por dimensión */
+static Value build_literal(ASTNode *lit, VKind base, int dims, ASTNode *site) {
+    ASTNode *vals = lit->data.array_init.values;
     Array *arr = ialloc(sizeof(Array));
-    arr->elem = elem;
-    if (vals && vals->type == NODE_LIST) {
-        arr->len = vals->data.list.count;
-        arr->items = ialloc((size_t)(arr->len + 1) * sizeof(Value));
-        for (int i = 0; i < arr->len; i++) {
-            Value v = eval(vals->data.list.items[i]);
-            if (g_err) return mkvoid();
-            arr->items[i] = coerce_to(elem, v, site);
-            if (g_err) return mkvoid();
-        }
-        return mkarray(arr);
-    }
-    Value size = eval(init->data.array_init.size);
-    if (g_err) return mkvoid();
-    if (size.k != V_INT && size.k != V_CHAR) { rt_error(site, "El tamaño del arreglo debe ser entero"); return mkvoid(); }
-    int64_t len = as_int64(size);
-    if (len < 0) { rt_error(site, "Tamaño de arreglo negativo (%lld)", (long long)len); return mkvoid(); }
-    if (len > 10000000) { rt_error(site, "Arreglo demasiado grande (%lld)", (long long)len); return mkvoid(); }
-    arr->len = (int)len;
+    arr->base = base;
+    arr->dims = dims;
+    arr->len = (vals && vals->type == NODE_LIST) ? vals->data.list.count : 0;
     arr->items = ialloc((size_t)(arr->len + 1) * sizeof(Value));
-    for (int i = 0; i < arr->len; i++) arr->items[i] = default_value(elem);
+    for (int i = 0; i < arr->len; i++) {
+        ASTNode *el = vals->data.list.items[i];
+        Value v;
+        if (dims > 1 && el->type == NODE_ARRAY_INIT && !el->data.array_init.size) {
+            v = build_literal(el, base, dims - 1, site);
+        } else {
+            v = eval(el);
+            if (g_err) return mkvoid();
+            if (dims > 1) {
+                if (v.k != V_ARRAY && v.k != V_NULL) { rt_error(site, "Se esperaba un arreglo en la posición %d", i); return mkvoid(); }
+            } else {
+                v = coerce_to(base, v, site);
+            }
+        }
+        if (g_err) return mkvoid();
+        arr->items[i] = v;
+    }
     return mkarray(arr);
+}
+
+/* new tipo[a][b]… */
+static Value build_new_array(ASTNode *init, VKind base, int dims, ASTNode *site) {
+    ASTNode *sizes = init->data.array_init.size;
+    int nd = (sizes && sizes->type == NODE_LIST) ? sizes->data.list.count : 0;
+    if (nd != dims || nd < 1 || nd > 16) { rt_error(site, "Dimensiones inválidas en la creación del arreglo"); return mkvoid(); }
+    int lens[16];
+    double total = 1;
+    for (int i = 0; i < nd; i++) {
+        Value sv = eval(sizes->data.list.items[i]);
+        if (g_err) return mkvoid();
+        if (sv.k != V_INT && sv.k != V_CHAR) { rt_error(site, "El tamaño del arreglo debe ser entero"); return mkvoid(); }
+        int64_t len = as_int64(sv);
+        if (len < 0) { rt_error(site, "Tamaño de arreglo negativo (%lld)", (long long)len); return mkvoid(); }
+        lens[i] = (int)len;
+        total *= (double)len;
+    }
+    if (total > 10000000.0) { rt_error(site, "Arreglo demasiado grande"); return mkvoid(); }
+    return mkarray(alloc_nd(base, dims, lens, 0));
+}
+
+static Value make_array(ASTNode *init, VKind base, int dims, ASTNode *site) {
+    if (init->data.array_init.size) return build_new_array(init, base, dims, site);
+    return build_literal(init, base, dims, site);
+}
+
+static Value new_array_with(Array *src, Value extra, ASTNode *site) {
+    Array *a = ialloc(sizeof(Array));
+    a->base = src->base;
+    a->dims = src->dims;
+    a->len = src->len + 1;
+    a->items = ialloc((size_t)(a->len + 1) * sizeof(Value));
+    for (int i = 0; i < src->len; i++) a->items[i] = src->items[i];
+    if (src->dims > 1) {
+        if (extra.k != V_ARRAY && extra.k != V_NULL) { rt_error(site, "Se esperaba un arreglo para agregar"); return mkvoid(); }
+        a->items[src->len] = extra;
+    } else {
+        Value c = coerce_to(src->base, extra, site);
+        if (g_err) return mkvoid();
+        a->items[src->len] = c;
+    }
+    return mkarray(a);
 }
 
 static int collect_args(ASTNode *args, Value *out, ASTNode *call) {
@@ -672,6 +780,28 @@ static Value call_function(ASTNode *call) {
     if (!strcmp(name, "System.out.println") || !strcmp(name, "println")) { print_args(argv, argc); fputc('\n', g_out); return mkvoid(); }
     if (!strcmp(name, "System.out.print") || !strcmp(name, "print")) { print_args(argv, argc); return mkvoid(); }
     if (!strcmp(name, "String.valueOf") && argc == 1) return mkstr(value_to_string(argv[0]));
+    if (!strcmp(name, "String.join")) {
+        if (argc < 2 || argv[0].k != V_STRING) { rt_error(call, "String.join requiere un delimitador String"); return mkvoid(); }
+        const char *delim = argv[0].u.s ? argv[0].u.s : "";
+        int count = argc - 1;
+        Value *items = argv + 1;
+        if (argc == 2 && argv[1].k == V_ARRAY) { count = argv[1].u.a->len; items = argv[1].u.a->items; }
+        else if (argc == 2 && argv[1].k == V_NULL) { rt_error(call, "String.join sobre un arreglo nulo"); return mkvoid(); }
+        size_t cap = 1;
+        const char **parts = ialloc((size_t)(count + 1) * sizeof(char *));
+        for (int i = 0; i < count; i++) { parts[i] = value_to_string(items[i]); cap += strlen(parts[i]) + strlen(delim); }
+        char *out = ialloc(cap + 1);
+        for (int i = 0; i < count; i++) { if (i) strcat(out, delim); strcat(out, parts[i]); }
+        return mkstr(out);
+    }
+    if (!strcmp(name, "Arrays.indexOf")) {
+        if (argc != 2 || argv[0].k == V_NULL) { rt_error(call, "Arrays.indexOf sobre un arreglo nulo"); return mkvoid(); }
+        if (argv[0].k != V_ARRAY) { rt_error(call, "Arrays.indexOf requiere un arreglo"); return mkvoid(); }
+        Array *arr = argv[0].u.a;
+        for (int i = 0; i < arr->len; i++)
+            if (values_equal(arr->items[i], argv[1])) return mkint(i);
+        return mkint(-1);
+    }
     if (!strcmp(name, "Integer.parseInt") || !strcmp(name, "Float.parseFloat") ||
         !strcmp(name, "Double.parseDouble")) {
         double d;
@@ -705,12 +835,12 @@ static Value call_function(ASTNode *call) {
         ASTNode *p = params->data.list.items[i];
         VKind pk = kind_from_name(p->data.parameter.data_type);
         Value av = argv[i];
-        if (p->data.parameter.is_array) {
+        if (p->data.parameter.dims > 0) {
             if (av.k != V_ARRAY && av.k != V_NULL) rt_error(call, "Se esperaba un arreglo en el argumento %d", i + 1);
         } else {
             av = coerce_to(pk, av, call);
         }
-        if (!g_err) declare_var(p, p->data.parameter.name, pk, p->data.parameter.is_array, av);
+        if (!g_err) declare_var(p, "Parámetro", p->data.parameter.name, pk, p->data.parameter.dims, av);
     }
 
     Value rv = mkvoid();
@@ -720,7 +850,7 @@ static Value call_function(ASTNode *call) {
         /* el cuerpo se ejecuta en el mismo ámbito que los parámetros */
         if (body && body->type == NODE_LIST) {
             for (int i = 0; i < body->data.list.count; i++)
-                if (body->data.list.items[i]->type == NODE_FUNCTION_DECL) register_function(body->data.list.items[i]);
+                if (body->data.list.items[i]->type == NODE_FUNCTION_DECL) register_function(body->data.list.items[i], g_scope->fname);
             for (int i = 0; i < body->data.list.count && !g_err; i++) {
                 Signal s = exec(body->data.list.items[i]);
                 if (s == SIG_RETURN) { rv = g_retval; break; }
@@ -758,6 +888,34 @@ static Value eval(ASTNode *n) {
             if (!lval_resolve(n, &lv)) return mkvoid();
             return lval_get(&lv);
         }
+        case NODE_MEMBER_ACCESS: {
+            Value obj = eval(n->data.member_access.object);
+            if (g_err) return mkvoid();
+            if (!strcmp(n->data.member_access.member, "length")) {
+                if (obj.k == V_NULL) { rt_error(n, "No se puede leer length de un arreglo nulo"); return mkvoid(); }
+                if (obj.k == V_ARRAY) return mkint(obj.u.a->len);
+            }
+            rt_error(n, "El miembro '%s' no existe", n->data.member_access.member);
+            return mkvoid();
+        }
+        case NODE_METHOD_CALL: {
+            const char *mname = n->data.method_call.name;
+            Value obj = eval(n->data.method_call.object);
+            if (g_err) return mkvoid();
+            Value argv[MAX_ARGS];
+            int argc = collect_args(n->data.method_call.arguments, argv, n);
+            if (argc < 0) return mkvoid();
+            if (!strcmp(mname, "add") && argc == 1) {
+                if (obj.k == V_NULL) { rt_error(n, "No se puede usar add sobre un arreglo nulo"); return mkvoid(); }
+                if (obj.k == V_ARRAY) return new_array_with(obj.u.a, argv[0], n);
+            }
+            if (!strcmp(mname, "equals") && argc == 1) {
+                if (obj.k == V_NULL) { rt_error(n, "No se puede llamar a equals sobre un valor nulo"); return mkvoid(); }
+                if (obj.k == V_STRING) return mkbool(values_equal(obj, argv[0]));
+            }
+            rt_error(n, "El método '%s' no existe", mname);
+            return mkvoid();
+        }
         case NODE_ASSIGNMENT:    return eval_assignment(n);
         case NODE_UNARY_OP:      return eval_unary(n);
         case NODE_BINARY_OP:     return eval_binary(n);
@@ -784,7 +942,7 @@ static Signal exec_list_here(ASTNode *list) {
     if (!list || list->type != NODE_LIST) return exec(list);
     for (int i = 0; i < list->data.list.count; i++)
         if (list->data.list.items[i] && list->data.list.items[i]->type == NODE_FUNCTION_DECL)
-            register_function(list->data.list.items[i]);
+            register_function(list->data.list.items[i], g_scope && g_scope->fname ? g_scope->fname : "Global");
     for (int i = 0; i < list->data.list.count && !g_err; i++) {
         Signal s = exec(list->data.list.items[i]);
         if (s != SIG_NONE) return s;
@@ -851,18 +1009,19 @@ static Signal exec(ASTNode *n) {
             return exec_block(n);
 
         case NODE_FUNCTION_DECL:
-            register_function(n);
+            register_function(n, g_scope && g_scope->fname ? g_scope->fname : "Global");
             return SIG_NONE;
 
         case NODE_VAR_DECL: {
             VKind t = kind_from_name(n->data.var_decl.data_type);
             bool is_arr = n->data.var_decl.is_array;
+            int dims = is_arr ? n->data.var_decl.array_size : 0;
             ASTNode *init = n->data.var_decl.init_value;
             Value val;
             if (!init) {
                 val = is_arr ? mknull() : default_value(t);
             } else if (init->type == NODE_ARRAY_INIT) {
-                val = make_array(init, t, n);
+                val = make_array(init, t, dims, n);
             } else {
                 val = eval(init);
                 if (!g_err) {
@@ -873,7 +1032,31 @@ static Signal exec(ASTNode *n) {
                     }
                 }
             }
-            if (!g_err) declare_var(n, n->data.var_decl.name, t, is_arr, val);
+            if (!g_err) declare_var(n, n->data.var_decl.is_const ? "Constante" : "Variable",
+                                    n->data.var_decl.name, t, dims, val);
+            return SIG_NONE;
+        }
+
+        case NODE_FOREACH_STMT: {
+            Value it = eval(n->data.foreach_stmt.iterable);
+            if (g_err) return SIG_NONE;
+            if (it.k == V_NULL) { rt_error(n, "No se puede recorrer un arreglo nulo"); return SIG_NONE; }
+            if (it.k != V_ARRAY) { rt_error(n, "El for-each requiere un arreglo"); return SIG_NONE; }
+            Array *arr = it.u.a;
+            int count = arr->len;                         /* longitud fija durante el recorrido */
+            VKind vt = kind_from_name(n->data.foreach_stmt.data_type);
+            int vdims = n->data.foreach_stmt.dims;
+            for (int i = 0; i < count && !g_err; i++) {
+                Value el = arr->items[i];
+                if (vdims == 0) el = coerce_to(vt, el, n);
+                if (g_err) break;
+                push_scope(g_scope, g_scope->fname);
+                declare_var(n, "Variable", n->data.foreach_stmt.name, vt, vdims, el);
+                Signal s = exec(n->data.foreach_stmt.body);
+                pop_scope();
+                if (s == SIG_BREAK) break;
+                if (s == SIG_RETURN) return s;
+            }
             return SIG_NONE;
         }
 
@@ -971,7 +1154,7 @@ int interpret_program(ASTNode *root, FILE *out) {
     if (body && body->type == NODE_LIST) {
         for (int i = 0; i < body->data.list.count; i++) {
             ASTNode *item = body->data.list.items[i];
-            if (item->type == NODE_FUNCTION_DECL) register_function(item);
+            if (item->type == NODE_FUNCTION_DECL) register_function(item, "Global");
             else if (item->type == NODE_MAIN_CLASS && !main_node) main_node = item;
         }
     }
@@ -989,32 +1172,43 @@ int interpret_program(ASTNode *root, FILE *out) {
 
 int interpreter_symbol_count(void) { return g_nrep; }
 
-static void fit(char *dst, size_t cap, const char *src, size_t width) {
+// Escapa saltos de línea y tabulaciones para que el valor quepa en una sola fila
+static void escape_cell(char *dst, size_t cap, const char *src) {
     size_t j = 0;
-    for (size_t i = 0; src[i] && j + 2 < cap; i++) {
+    for (size_t i = 0; src[i] && j + 3 < cap; i++) {
         if (src[i] == '\n') { dst[j++] = '\\'; dst[j++] = 'n'; }
         else if (src[i] == '\t') { dst[j++] = '\\'; dst[j++] = 't'; }
         else dst[j++] = src[i];
     }
     dst[j] = '\0';
-    if (j > width) { dst[width - 3] = '.'; dst[width - 2] = '.'; dst[width - 1] = '.'; dst[width] = '\0'; }
 }
 
 void interpreter_write_symbol_table(FILE *f) {
-    const char *line = "+-----------------+-------+---------------+----------------------+-----------------+";
-    fprintf(f, "=============================================================\n");
-    fprintf(f, "                REPORTE: TABLA DE SIMBOLOS                  \n");
-    fprintf(f, "=============================================================\n");
+    const char *line = "+------------------+--------------+--------------+--------------------+-------+---------+--------------------------+";
+    fprintf(f, "============================================================================================================================\n");
+    fprintf(f, "                                              REPORTE: TABLA DE SIMBOLOS\n");
+    fprintf(f, "============================================================================================================================\n");
     fprintf(f, "%s\n", line);
-    fprintf(f, "| %-15s | %-5s | %-13s | %-20s | %-15s |\n", "ID", "Scope", "TIPO DE DATO", "VALOR", "FUNCION");
-    fprintf(f, "%s\n", line);
+    fprintf(f, "| "); fprint_cell(f, "ID", 16);
+    fprintf(f, " | "); fprint_cell(f, "Tipo simbolo", 12);
+    fprintf(f, " | "); fprint_cell(f, "Tipo dato", 12);
+    fprintf(f, " | "); fprint_cell(f, "Ambito", 18);
+    fprintf(f, " | Linea | Columna | "); fprint_cell(f, "Valor", 24);
+    fprintf(f, " |\n%s\n", line);
     for (int i = 0; i < g_nrep; i++) {
-        char id[64], val[512], fn[64], ty[64];
-        fit(id, sizeof id, g_rep[i].id, 15);
-        fit(val, sizeof val, g_rep[i].value, 20);
-        fit(fn, sizeof fn, g_rep[i].func, 15);
-        fit(ty, sizeof ty, g_rep[i].type, 13);
-        fprintf(f, "| %-15s | %-5d | %-13s | %-20s | %-15s |\n", id, g_rep[i].depth, ty, val, fn);
+        char scope[128], val[1024];
+        if (!strcmp(g_rep[i].func, "Global") || g_rep[i].depth == 0)
+            snprintf(scope, sizeof scope, "%s", g_rep[i].func);
+        else
+            snprintf(scope, sizeof scope, "%s [nivel %d]", g_rep[i].func, g_rep[i].depth);
+        escape_cell(val, sizeof val, g_rep[i].value);
+        fprintf(f, "| "); fprint_cell(f, g_rep[i].id, 16);
+        fprintf(f, " | "); fprint_cell(f, g_rep[i].kind, 12);
+        fprintf(f, " | "); fprint_cell(f, g_rep[i].type, 12);
+        fprintf(f, " | "); fprint_cell(f, scope, 18);
+        fprintf(f, " | %-5d | %-7d | ", g_rep[i].line, g_rep[i].column);
+        fprint_cell(f, val, 24);
+        fprintf(f, " |\n");
     }
     fprintf(f, "%s\n\nTotal de simbolos: %d\n", line, g_nrep);
 }

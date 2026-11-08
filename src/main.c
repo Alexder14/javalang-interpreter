@@ -8,6 +8,8 @@
 #include "semantic.h"
 #include "common.h"
 #include "interpreter.h"
+#include "ast_dot.h"
+#include <sys/wait.h>
 
 // Declaraciones externas
 extern FILE *yyin;
@@ -20,7 +22,7 @@ void print_banner();
 void process_file(const char *filename);
 void generate_reports(const char *filename);
 void generate_complete_reports(const char *filename);
-void visualize_ast(const char *filename);
+int render_dot(const char *dot_file, const char *png_file);
 char* get_base_filename(const char *filepath);
 
 int main(int argc, char *argv[]) {
@@ -146,8 +148,9 @@ void process_file(const char *filename) {
             char msg[512];
             snprintf(msg, sizeof(msg), "%s%s%s", list[i]->message,
                      list[i]->context[0] ? ": " : "", list[i]->context);
-            add_error(ERROR_SEMANTIC, msg, "Global", list[i]->line, list[i]->column);
+            add_error(ERROR_SEMANTIC, msg, list[i]->scope, list[i]->line, list[i]->column);
         }
+        print_errors();
     } else {
         printf("✅ Análisis semántico completado sin errores\n");
         
@@ -168,9 +171,6 @@ void process_file(const char *filename) {
     // Generar reportes
     printf("\n📊 Generando reportes...\n");
     generate_complete_reports(filename);
-    
-    // Visualizar AST si es posible
-    visualize_ast(filename);
     
     // Mostrar resumen final
     print_compilation_summary();
@@ -193,25 +193,32 @@ void generate_complete_reports(const char *filename) {
     snprintf(report_filename, sizeof(report_filename), "%s_errors.txt", base);
     generate_error_report(report_filename);
     
-    // Generar reporte del AST
-    char ast_filename[512];
+    // Reporte del AST: grafo Graphviz (.dot + .png) y árbol de texto (.txt)
+    char dot_filename[512], png_filename[512], ast_filename[512];
+    snprintf(dot_filename, sizeof(dot_filename), "%s_ast.dot", base);
+    snprintf(png_filename, sizeof(png_filename), "%s_ast.png", base);
     snprintf(ast_filename, sizeof(ast_filename), "%s_ast.txt", base);
     
     FILE *ast_file = fopen(ast_filename, "w");
     if (ast_file) {
         fprintf(ast_file, "ÁRBOL DE SINTAXIS ABSTRACTA (AST)\n");
         fprintf(ast_file, "==================================\n\n");
-        
-        if (ast_root) {
-            // Aquí se podría implementar una función para imprimir el AST a archivo
-            fprintf(ast_file, "AST generado exitosamente.\n");
-            fprintf(ast_file, "Tipo de nodo raíz: %d\n", ast_root->type);
-        } else {
-            fprintf(ast_file, "No se pudo generar el AST.\n");
-        }
-        
+        if (ast_root) print_ast_file(ast_root, ast_file);
+        else fprintf(ast_file, "No se pudo generar el AST.\n");
         fclose(ast_file);
-        printf("📄 Reporte AST generado: %s\n", ast_filename);
+        printf("📄 Reporte AST (texto) generado: %s\n", ast_filename);
+    }
+    
+    FILE *dot_file = fopen(dot_filename, "w");
+    if (dot_file) {
+        ast_write_dot(ast_root, dot_file);
+        fclose(dot_file);
+        printf("📄 Reporte AST (grafo) generado: %s\n", dot_filename);
+        if (render_dot(dot_filename, png_filename) == 0)
+            printf("🖼️  Imagen del AST generada: %s\n", png_filename);
+        else
+            printf("ℹ️  Para dibujar el grafo instale Graphviz (sudo apt install graphviz) y ejecute: dot -Tpng %s -o %s\n",
+                   dot_filename, png_filename);
     }
     
     // Reporte de tabla de símbolos con valores (solo si el programa se ejecutó)
@@ -229,30 +236,18 @@ void generate_complete_reports(const char *filename) {
     free(base);
 }
 
-void visualize_ast(const char *filename) {
-    char *base = get_base_filename(filename);
-    if (!base) return;
-    
-    // Intentar generar visualización con Graphviz
-    char dot_filename[512];
-    char png_filename[512];
-    snprintf(dot_filename, sizeof(dot_filename), "%s_ast.dot", base);
-    snprintf(png_filename, sizeof(png_filename), "%s_ast.png", base);
-    
-    // Verificar si Graphviz está disponible
-    if (system("which dot > /dev/null 2>&1") == 0) {
-        // Generar archivo DOT (esto requeriría implementar export_ast_to_dot)
-        printf("🎨 Visualización AST disponible con Graphviz\n");
-        
-        char command[1024];
-        snprintf(command, sizeof(command), "dot -Tpng %s -o %s 2>/dev/null", dot_filename, png_filename);
-        
-        if (system(command) == 0) {
-            printf("🖼️  Imagen AST generada: %s\n", png_filename);
-        }
+// Ejecuta `dot -Tpng entrada -o salida` sin pasar por el shell. Devuelve 0 si tuvo éxito.
+int render_dot(const char *dot_file, const char *png_file) {
+    pid_t pid = fork();
+    if (pid < 0) return -1;
+    if (pid == 0) {
+        freopen("/dev/null", "w", stderr);
+        execlp("dot", "dot", "-Tpng", dot_file, "-o", png_file, (char *)NULL);
+        _exit(127);
     }
-    
-    free(base);
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0) return -1;
+    return (WIFEXITED(status) && WEXITSTATUS(status) == 0) ? 0 : -1;
 }
 
 char* get_base_filename(const char *filepath) {

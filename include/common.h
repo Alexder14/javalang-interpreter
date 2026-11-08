@@ -56,6 +56,10 @@ const char* data_type_to_string(DataType type);  // Consistente con semantic.h
 DataType string_to_data_type(const char* str);
 void add_error(ErrorType type, const char* message, const char* scope, int line, int col);
 void print_errors();
+void fprint_cell(FILE *f, const char *s, int width);
+int get_errors_chronological(Error **out, int max);
+void write_error_table(FILE *f);
+const char* get_error_type_name(ErrorType type);
 void clear_errors();
 bool has_any_errors();
 void initialize_error_system();

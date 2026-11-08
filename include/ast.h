@@ -21,6 +21,7 @@ typedef enum {
     NODE_IF_STMT,
     NODE_WHILE_STMT,
     NODE_FOR_STMT,
+    NODE_FOREACH_STMT,
     NODE_DO_WHILE_STMT,
     NODE_SWITCH_STMT,
     NODE_CASE_STMT,
@@ -33,6 +34,8 @@ typedef enum {
     NODE_BINARY_OP,
     NODE_UNARY_OP,
     NODE_FUNCTION_CALL,
+    NODE_METHOD_CALL,
+    NODE_MEMBER_ACCESS,
     NODE_ARRAY_ACCESS,
     NODE_ARRAY_INIT,
     
@@ -78,7 +81,8 @@ typedef struct ASTNode {
             char *name;
             struct ASTNode *init_value;
             bool is_array;
-            int array_size;
+            int array_size;      // número de dimensiones si is_array (int[][] -> 2)
+            bool is_const;       // declarada con final
         } var_decl;
         
         // Declaración de función - CAMPO CLAVE QUE FALTABA
@@ -94,6 +98,7 @@ typedef struct ASTNode {
             char *data_type;
             char *name;
             bool is_array;
+            int dims;            // número de dimensiones (0 si no es arreglo)
         } parameter;
         
         // Bloque de sentencias
@@ -123,6 +128,28 @@ typedef struct ASTNode {
             struct ASTNode *update;
             struct ASTNode *body;
         } for_stmt;
+        
+        // Sentencia for-each: for (tipo[]... id : iterable)
+        struct {
+            char *data_type;
+            char *name;
+            int dims;            // dimensiones de la variable de iteración
+            struct ASTNode *iterable;
+            struct ASTNode *body;
+        } foreach_stmt;
+        
+        // Acceso a miembro: objeto.miembro (p. ej. arreglo.length)
+        struct {
+            struct ASTNode *object;
+            char *member;
+        } member_access;
+        
+        // Llamada a método: objeto.nombre(args) (p. ej. arreglo.add(x), texto.equals(y))
+        struct {
+            struct ASTNode *object;
+            char *name;
+            struct ASTNode *arguments;
+        } method_call;
         
         // Sentencia switch
         struct {
@@ -177,8 +204,8 @@ typedef struct ASTNode {
         // Inicialización de arreglo
         struct {
             char *type;
-            struct ASTNode *size;
-            struct ASTNode *values;  // Lista de valores iniciales
+            struct ASTNode *size;    // lista de expresiones de dimensión (new T[a][b]); NULL en literales
+            struct ASTNode *values;  // Lista de valores iniciales ({...}, anidada para matrices)
         } array_init;
         
         // Literales
@@ -235,6 +262,9 @@ ASTNode* create_parameter_node(const char *type, const char *name, bool is_array
 ASTNode* create_block_node();
 ASTNode* create_if_node(ASTNode *condition, ASTNode *then_stmt, ASTNode *else_stmt);
 ASTNode* create_while_node(ASTNode *condition, ASTNode *body);
+ASTNode* create_foreach_node(const char *type, const char *name, int dims, ASTNode *iterable, ASTNode *body);
+ASTNode* create_member_access_node(ASTNode *object, const char *member);
+ASTNode* create_method_call_node(ASTNode *object, const char *name, ASTNode *args);
 ASTNode* create_for_node(ASTNode *init, ASTNode *condition, ASTNode *update, ASTNode *body);
 ASTNode* create_assignment_node(ASTNode *left, const char *op, ASTNode *right);
 ASTNode* create_binary_op_node(const char *op, ASTNode *left, ASTNode *right);
@@ -257,6 +287,7 @@ int get_list_size(ASTNode *list);
 
 // Funciones para manipular el AST
 void print_ast(ASTNode *node, int depth);
+void print_ast_file(ASTNode *root, FILE *f);
 void free_ast(ASTNode *node);
 ASTNode* clone_ast(ASTNode *node);
 

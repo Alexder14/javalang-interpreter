@@ -1,65 +1,81 @@
 # JavaLang Compiler / Interpreter
 
-Compilador e intérprete educativo para el lenguaje JavaLang (curso Organización de Lenguajes y Compiladores 2).
+Intérprete educativo para el lenguaje JavaLang (sintaxis tipo Java, archivos `.usl`), hecho en C con
+Flex y Bison para el curso Organización de Lenguajes y Compiladores 2 (USAC).
 
-## Fases implementadas
+## Fases
 
-- **Fase 2**: análisis léxico (Flex) — `lexer/lexer.l`
-- **Fase 3**: análisis sintáctico y AST (Bison) — `parser/parser.y`, `src/ast.c`
-- **Fase 4**: análisis semántico y tabla de símbolos — `src/semantic.c`
-- **Fase 5**: intérprete (ejecución del AST) — `src/interpreter.c`
+| Fase | Archivos |
+|------|----------|
+| Análisis léxico (Flex) | `lexer/lexer.l` |
+| Análisis sintáctico y AST (Bison) | `parser/parser.y`, `src/ast.c` |
+| Análisis semántico y tabla de símbolos | `src/semantic.c` |
+| Intérprete (ejecución del AST) | `src/interpreter.c` |
+| Reportes (errores, símbolos, AST en Graphviz) | `src/common.c`, `src/interpreter.c`, `src/ast_dot.c` |
 
-Si el análisis semántico no encuentra errores, el programa se **ejecuta**: variables con valor,
-aritmética, cadenas, arreglos, `if/else`, `while`, `do-while`, `for`, `switch`, funciones con
-recursión y `System.out.println/print`. Los errores en ejecución (división entre cero, índice fuera
-de rango, bucle infinito, recursión desbordada) se reportan con línea y columna.
+Si el análisis semántico no encuentra errores, el programa se **ejecuta** buscando
+`public static void main()`.
 
 ## Requisitos
 
-`gcc`, `make`, `flex`, `bison`
+`gcc`, `make`, `flex`, `bison` y, para dibujar el grafo del AST, `graphviz` (`sudo apt install graphviz`).
 
 ## Uso
 
 ```bash
 make                                  # compila ./javalang_interpreter
-./javalang_interpreter archivo.usl    # analiza, ejecuta y genera reportes
+./javalang_interpreter archivo.usl    # analiza, ejecuta y genera los reportes
 make clean
 ```
 
-Ejemplo (`tests/run/precedencia.usl`):
+## Lenguaje soportado
 
-```text
-▶️  Ejecutando código
-a + b * b = 7
-a - b / b = 2
-b1 && b2 || b2 = false
-✅ Ejecución finalizada
-```
+- **Tipos:** `int float double boolean char String`, con sus valores por defecto; `null`; casting
+  `(int) x`; widening automático `char → int → float → double`.
+- **Constantes:** `final int K = 3;` (reasignarlas es un error).
+- **Operadores:** aritméticos, relacionales, lógicos (`&& || !`), de bits (`& | ^ ~ << >>`),
+  `++ --` y asignaciones compuestas (`+= -= *= /= %= &= |= ^= <<= >>=`).
+- **Control de flujo:** `if / else if / else`, `while`, `do-while`, `for`, **for-each**
+  (`for (int n : numeros)`), `switch / case / default`, `break`, `continue`, `return`.
+- **Funciones:** con o sin parámetros, con valor de retorno, recursivas, ámbito local; se pueden
+  declarar `public static`, `public` o sin modificadores.
+- **Arreglos:** `int[] a = new int[5]`, `int[] a = {1, 2, 3}`, **multidimensionales**
+  (`int[][] m = new int[3][4]`, `int m[][] = {{1, 2}, {3, 4}}`, N dimensiones), acceso `m[1][2]`,
+  `a.length`, `a.add(x)` (devuelve un arreglo nuevo con el elemento al final).
+- **Funciones integradas:** `System.out.println/print`, `Integer.parseInt`, `Float.parseFloat`,
+  `Double.parseDouble`, `String.valueOf`, `String.join(delim, a, b, …)` / `String.join(delim, arreglo)`,
+  `Arrays.indexOf(arreglo, clave)`, `texto.equals(otro)`.
+- Comentarios `//` y `/* */`, secuencias de escape `\n \t \r \" \\`.
 
-Reportes que se generan junto al directorio de ejecución:
-`<archivo>_errors.txt`, `<archivo>_ast.txt` y `<archivo>_symbols.txt` (tabla de símbolos con
-**ID, Scope, tipo, valor final y función**).
+## Reportes
+
+Se generan junto al directorio desde el que se ejecuta, con el nombre del archivo de entrada:
+
+| Archivo | Contenido |
+|---------|-----------|
+| `<nombre>_errors.txt` | Tabla de errores: No., Descripción, Ámbito, Línea, Columna (léxicos, sintácticos, semánticos y de ejecución) |
+| `<nombre>_symbols.txt` | Tabla de símbolos tras la ejecución: ID, Tipo símbolo (Variable / Parámetro / Constante / Función), Tipo dato, Ámbito, Línea, Columna y **Valor final** |
+| `<nombre>_ast.dot` y `<nombre>_ast.png` | AST como grafo (Graphviz); el `.png` se genera si `dot` está instalado |
+| `<nombre>_ast.txt` | AST como texto con sangría |
 
 ## Cambiar la precedencia de operadores
 
-La precedencia está en `parser/parser.y` (bloque `%left`). Para ver el efecto de intercambiar la de
-`+ -` con la de `* / %` sin editar el parser:
+La precedencia está en el bloque `%left` de `parser/parser.y`. Para ver el efecto de intercambiar
+`+ -` con `* / %` sin editar el parser:
 
 ```bash
 make precedencia-invertida
-./javalang_interpreter_inv tests/run/precedencia.usl   # a + b * b = 10, a - b / b = 0
+./javalang_interpreter_inv tests/run/precedencia.usl   # a + b * b = 10 en vez de 7
 ```
 
 ## Pruebas
 
 ```bash
-make check-ejemplos   # examples/ y tests/test_files/ deben compilar; los *error* deben fallar
+make check-ejemplos   # examples/ y tests/test_files/: compilan; los *error* deben fallar
 make check-ejecucion  # tests/run/*.usl: la salida debe coincidir con su .out
+make check-semantica  # tests/semantica/*.usl: cada error debe reportar el mensaje de su .msg
+make check-reportes   # se generan los reportes (errores, símbolos, AST)
+make check-todo       # las cuatro anteriores
 ```
 
-## Lenguaje
-
-`public static void main(String[] args) { ... }`, funciones (a nivel superior, con o sin
-`public static`), tipos `int float double boolean char String`, arreglos 1D (`new int[n]` o
-`{1, 2, 3}`), operadores aritméticos, lógicos, de comparación y de bits, `++ --`, `+= -= *= /= %=`.
-Una clase envolvente (`public class X { ... }`) no forma parte de la gramática.
+Las salidas esperadas de `tests/run` están calculadas a mano, no copiadas del programa.

@@ -1,0 +1,19 @@
+public static void main(String[] args) {
+    final int LIMITE = 10;
+    System.out.println(LIMITE * 2);
+    int x = 6;
+    x &= 3;
+    System.out.println(x);
+    x |= 8;
+    System.out.println(x);
+    x ^= 3;
+    System.out.println(x);
+    x <<= 2;
+    System.out.println(x);
+    x >>= 1;
+    System.out.println(x);
+    System.out.println(1 << 4);
+    System.out.println(-16 >> 2);
+    int _tmp = 5;
+    System.out.println(_tmp);
+}

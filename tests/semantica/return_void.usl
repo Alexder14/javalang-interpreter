@@ -1,0 +1,6 @@
+public static void main(String[] args) {
+    g();
+}
+void g() {
+    return 1;
+}

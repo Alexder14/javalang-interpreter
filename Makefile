@@ -18,7 +18,7 @@ LEXERDIR = lexer
 BUILDDIR = build
 
 # Archivos fuente
-SOURCES = $(SRCDIR)/main.c $(SRCDIR)/ast.c $(SRCDIR)/semantic.c $(SRCDIR)/interpreter.c $(SRCDIR)/common.c
+SOURCES = $(SRCDIR)/main.c $(SRCDIR)/ast.c $(SRCDIR)/semantic.c $(SRCDIR)/interpreter.c $(SRCDIR)/ast_dot.c $(SRCDIR)/common.c
 PARSER_SRC = $(PARSERDIR)/parser.tab.c
 LEXER_SRC = $(LEXERDIR)/lex.yy.c
 
@@ -127,7 +127,7 @@ check-ejemplos: $(TARGET)
 		if ./$(TARGET) $$f 2>&1 | grep -q "Compilación exitosa"; then got=ok; else got=fail; fi; \
 		if [ $$got = $$want ]; then echo "PASS $$f"; else echo "FAIL $$f (esperado $$want)"; fail=1; fi; \
 	done; \
-	rm -f *_ast.txt *_errors.txt; \
+	rm -f $(REPORT_FILES); \
 	exit $$fail
 
 # Ejecución: cada tests/run/X.usl se ejecuta y su salida debe ser igual a tests/run/X.out
@@ -143,10 +143,36 @@ check-ejecucion: $(TARGET)
 		if [ "$$got" = "$$want" ] && [ $$rc = $$wantrc ]; then echo "PASS $$f"; \
 		else echo "FAIL $$f (salida o código de retorno distintos)"; fail=1; fi; \
 	done; \
-	rm -f *_ast.txt *_errors.txt *_symbols.txt; exit $$fail
+	rm -f $(REPORT_FILES); exit $$fail
+
+# Semántica: cada tests/semantica/X.usl debe fallar y reportar el mensaje que está en X.msg
+check-semantica: $(TARGET)
+	@fail=0; \
+	for f in tests/semantica/*.usl; do \
+		b=$${f%.usl}; want=$$(cat $$b.msg); \
+		out=$$(./$(TARGET) $$f 2>&1); \
+		if echo "$$out" | grep -qF -- "$$want"; then echo "PASS $$f"; \
+		else echo "FAIL $$f (no aparece: $$want)"; fail=1; fi; \
+	done; \
+	rm -f $(REPORT_FILES); exit $$fail
+
+# Reportes: se generan los archivos de AST (grafo), símbolos y errores
+check-reportes: $(TARGET)
+	@mkdir -p build/rep && cp tests/run/funciones.usl build/rep/ && (cd build/rep && ../../$(TARGET) funciones.usl >/dev/null 2>&1); \
+	fail=0; \
+	for f in funciones_errors.txt funciones_symbols.txt funciones_ast.txt funciones_ast.dot; do \
+		if [ -s build/rep/$$f ]; then echo "PASS $$f"; else echo "FAIL $$f (no se generó)"; fail=1; fi; \
+	done; \
+	grep -q "digraph AST" build/rep/funciones_ast.dot && echo "PASS dot válido" || { echo "FAIL dot"; fail=1; }; \
+	grep -q "Tipo simbolo" build/rep/funciones_symbols.txt && echo "PASS columnas de la tabla" || { echo "FAIL columnas"; fail=1; }; \
+	exit $$fail
+
+# Todas las pruebas
+check-todo: check-ejemplos check-ejecucion check-semantica check-reportes
 
 # Variante con la precedencia de + y - intercambiada con la de * / %
 # (genera ./javalang_interpreter_inv sin modificar parser/parser.y)
+REPORT_FILES = *_ast.txt *_ast.dot *_ast.png *_errors.txt *_symbols.txt
 INV_DIR = $(BUILDDIR)/inv
 precedencia-invertida: $(LEXERDIR)/lexer.l $(PARSERDIR)/parser.y $(SOURCES)
 	@echo "🔁 Generando intérprete con precedencia de + - y * / % intercambiada..."
@@ -162,4 +188,4 @@ precedencia-invertida: $(LEXERDIR)/lexer.l $(PARSERDIR)/parser.y $(SOURCES)
 		$(SOURCES) $(INV_DIR)/parser.tab.c $(INV_DIR)/lex.yy.c $(LIBS)
 	@echo "✅ ./javalang_interpreter_inv listo"
 
-.PHONY: check-ejecucion precedencia-invertida
+.PHONY: check-ejecucion precedencia-invertida check-semantica check-reportes check-todo
