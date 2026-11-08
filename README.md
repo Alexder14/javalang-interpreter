@@ -79,3 +79,7 @@ make check-todo       # las cuatro anteriores
 ```
 
 Las salidas esperadas de `tests/run` están calculadas a mano, no copiadas del programa.
+
+## Licencia
+
+MIT. Ver [LICENSE](LICENSE).
