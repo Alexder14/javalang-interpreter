@@ -425,7 +425,7 @@ bool analyze_expression(SemanticAnalyzer *analyzer, ASTNode *node, DataType *res
                 }
                 *result_type = TYPE_BOOLEAN;
             } else {
-                if (!is_numeric_type(ot)) {
+                if (!is_numeric_type(ot) && ot != TYPE_CHAR) {
                     add_semantic_error(analyzer, "Operador unario requiere tipo numérico", op,
                                       node->line, node->column);
                     *result_type = TYPE_UNKNOWN;
@@ -554,6 +554,10 @@ bool is_compatible_types(DataType type1, DataType type2) {
 
 // Obtener tipo resultado de operación binaria - CORREGIDO
 DataType get_binary_operation_result_type(const char *op, DataType left_type, DataType right_type) {
+    // En aritmética y comparaciones, char se comporta como int (como en Java)
+    bool l_num = is_numeric_type(left_type) || left_type == TYPE_CHAR;
+    bool r_num = is_numeric_type(right_type) || right_type == TYPE_CHAR;
+    
     // Concatenación: String + cualquier tipo
     if (strcmp(op, "+") == 0 && (left_type == TYPE_STRING || right_type == TYPE_STRING)) {
         return TYPE_STRING;
@@ -561,7 +565,7 @@ DataType get_binary_operation_result_type(const char *op, DataType left_type, Da
     
     if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0 || 
         strcmp(op, "*") == 0 || strcmp(op, "/") == 0 || strcmp(op, "%") == 0) {
-        if (is_numeric_type(left_type) && is_numeric_type(right_type)) {
+        if (l_num && r_num) {
             if (left_type == TYPE_DOUBLE || right_type == TYPE_DOUBLE) return TYPE_DOUBLE;
             if (left_type == TYPE_FLOAT || right_type == TYPE_FLOAT) return TYPE_FLOAT;
             return TYPE_INT;
@@ -571,7 +575,7 @@ DataType get_binary_operation_result_type(const char *op, DataType left_type, Da
     if (strcmp(op, "==") == 0 || strcmp(op, "!=") == 0 ||
         strcmp(op, "<") == 0 || strcmp(op, "<=") == 0 ||
         strcmp(op, ">") == 0 || strcmp(op, ">=") == 0) {
-        if (is_compatible_types(left_type, right_type)) {
+        if ((l_num && r_num) || is_compatible_types(left_type, right_type)) {
             return TYPE_BOOLEAN;
         }
     }
@@ -580,6 +584,13 @@ DataType get_binary_operation_result_type(const char *op, DataType left_type, Da
         if (left_type == TYPE_BOOLEAN && right_type == TYPE_BOOLEAN) {
             return TYPE_BOOLEAN;
         }
+    }
+    
+    // Operadores a nivel de bits: enteros (o booleanos para & | ^)
+    if (strcmp(op, "&") == 0 || strcmp(op, "|") == 0 || strcmp(op, "^") == 0) {
+        if (left_type == TYPE_BOOLEAN && right_type == TYPE_BOOLEAN) return TYPE_BOOLEAN;
+        if ((left_type == TYPE_INT || left_type == TYPE_CHAR) &&
+            (right_type == TYPE_INT || right_type == TYPE_CHAR)) return TYPE_INT;
     }
     
     return TYPE_UNKNOWN;

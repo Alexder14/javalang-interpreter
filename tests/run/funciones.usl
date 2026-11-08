@@ -1,0 +1,51 @@
+public static void main(String[] args) {
+    System.out.println(factorial(5));
+    System.out.println(fib(10));
+    saludar("Mundo");
+    System.out.println(promedio(3, 4));
+    int[] nums = {5, 3, 8, 1};
+    int max = nums[0];
+    for (int i = 1; i < 4; i++) {
+        if (nums[i] > max) {
+            max = nums[i];
+        }
+    }
+    System.out.println(max);
+    nums[1] = nums[1] * 10;
+    System.out.println(nums[1]);
+    int[] z = new int[3];
+    z[2] = 4;
+    System.out.println(z[0] + z[2]);
+    System.out.println(nums);
+    System.out.println(suma(nums, 4));
+    String num = "42";
+    System.out.println(Integer.parseInt(num) + 1);
+}
+
+public static int factorial(int n) {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+public static int fib(int n) {
+    if (n < 2) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+public static void saludar(String nombre) {
+    System.out.println("Hola " + nombre);
+}
+
+public static double promedio(int a, int b) {
+    return (a + b) / 2.0;
+}
+
+public static int suma(int[] a, int n) {
+    int total = 0;
+    for (int i = 0; i < n; i++) {
+        total += a[i];
+    }
+    return total;
+}

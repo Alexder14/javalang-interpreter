@@ -1,0 +1,53 @@
+public static void main(String[] args) {
+    int sum = 0;
+    for (int i = 1; i <= 5; i++) {
+        sum += i;
+    }
+    System.out.println(sum);
+    int j = 0;
+    while (j < 10) {
+        j++;
+        if (j % 2 == 0) {
+            continue;
+        }
+        if (j > 7) {
+            break;
+        }
+        sum = sum + j;
+    }
+    System.out.println(sum);
+    System.out.println(j);
+    int k = 0;
+    do {
+        k += 3;
+    } while (k < 10);
+    System.out.println(k);
+    int op = 2;
+    switch (op) {
+        case 1:
+            System.out.println("uno");
+            break;
+        case 2:
+            System.out.println("dos");
+        case 3:
+            System.out.println("tres");
+            break;
+        default:
+            System.out.println("otro");
+    }
+    int z = 9;
+    switch (z) {
+        case 1:
+            System.out.println("x");
+            break;
+        default:
+            System.out.println("def");
+    }
+    if (sum > 100) {
+        System.out.println("grande");
+    } else if (sum > 30) {
+        System.out.println("mediano");
+    } else {
+        System.out.println("pequeno");
+    }
+}

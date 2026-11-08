@@ -7,6 +7,7 @@
 #include "ast.h"
 #include "semantic.h"
 #include "common.h"
+#include "interpreter.h"
 
 // Declaraciones externas
 extern FILE *yyin;
@@ -149,6 +150,19 @@ void process_file(const char *filename) {
         }
     } else {
         printf("✅ Análisis semántico completado sin errores\n");
+        
+        // Fase 5: Ejecución del programa
+        printf("\n▶️  Ejecutando código\n");
+        printf("═══════════════════════════════════════════════════════════\n");
+        fflush(stdout);
+        int run_rc = interpret_program(ast_root, stdout);
+        printf("═══════════════════════════════════════════════════════════\n");
+        if (run_rc != 0) {
+            printf("❌ Error en tiempo de ejecución\n");
+            print_errors();
+        } else {
+            printf("✅ Ejecución finalizada\n");
+        }
     }
     
     // Generar reportes
@@ -162,6 +176,7 @@ void process_file(const char *filename) {
     print_compilation_summary();
     
     // Limpiar memoria
+    interpreter_reset();
     if (ast_root) {
         free_ast(ast_root);
     }
@@ -197,6 +212,18 @@ void generate_complete_reports(const char *filename) {
         
         fclose(ast_file);
         printf("📄 Reporte AST generado: %s\n", ast_filename);
+    }
+    
+    // Reporte de tabla de símbolos con valores (solo si el programa se ejecutó)
+    if (interpreter_symbol_count() > 0) {
+        char sym_filename[512];
+        snprintf(sym_filename, sizeof(sym_filename), "%s_symbols.txt", base);
+        FILE *sym_file = fopen(sym_filename, "w");
+        if (sym_file) {
+            interpreter_write_symbol_table(sym_file);
+            fclose(sym_file);
+            printf("📄 Reporte de tabla de símbolos generado: %s\n", sym_filename);
+        }
     }
     
     free(base);

@@ -1,0 +1,24 @@
+public static void main(String[] args) {
+    int i = 7;
+    float f = 2.5;
+    double d = 10;
+    char c = 'A';
+    boolean t = true;
+    String s = "hola";
+    System.out.println(i / 2);
+    System.out.println(i % 4);
+    System.out.println(f * 2);
+    System.out.println(d / 4);
+    System.out.println(c);
+    System.out.println(c + 1);
+    System.out.println(s + " " + i);
+    System.out.println(1 + 2 + "x" + 1 + 2);
+    System.out.println(7 / 2.0);
+    System.out.println(-i);
+    System.out.println(t);
+    System.out.println(!t);
+    i += 3;
+    i *= 2;
+    System.out.println(i);
+    System.out.println("tab\tfin");
+}

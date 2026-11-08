@@ -18,7 +18,7 @@ LEXERDIR = lexer
 BUILDDIR = build
 
 # Archivos fuente
-SOURCES = $(SRCDIR)/main.c $(SRCDIR)/ast.c $(SRCDIR)/semantic.c $(SRCDIR)/common.c
+SOURCES = $(SRCDIR)/main.c $(SRCDIR)/ast.c $(SRCDIR)/semantic.c $(SRCDIR)/interpreter.c $(SRCDIR)/common.c
 PARSER_SRC = $(PARSERDIR)/parser.tab.c
 LEXER_SRC = $(LEXERDIR)/lex.yy.c
 
@@ -129,3 +129,37 @@ check-ejemplos: $(TARGET)
 	done; \
 	rm -f *_ast.txt *_errors.txt; \
 	exit $$fail
+
+# Ejecución: cada tests/run/X.usl se ejecuta y su salida debe ser igual a tests/run/X.out
+# (los X.usl con "error" en el nombre deben terminar con error en ejecución).
+check-ejecucion: $(TARGET)
+	@fail=0; \
+	for f in tests/run/*.usl; do \
+		b=$${f%.usl}; \
+		got=$$(./$(TARGET) $$f 2>&1 | awk '/Ejecutando código/{f=1;skip=1;next} f&&skip{skip=0;next} f&&/^═══/{exit} f{print}'); \
+		want=$$(cat $$b.out); \
+		./$(TARGET) $$f >/dev/null 2>&1; rc=$$?; \
+		case $$f in *error*) wantrc=1;; *) wantrc=0;; esac; \
+		if [ "$$got" = "$$want" ] && [ $$rc = $$wantrc ]; then echo "PASS $$f"; \
+		else echo "FAIL $$f (salida o código de retorno distintos)"; fail=1; fi; \
+	done; \
+	rm -f *_ast.txt *_errors.txt *_symbols.txt; exit $$fail
+
+# Variante con la precedencia de + y - intercambiada con la de * / %
+# (genera ./javalang_interpreter_inv sin modificar parser/parser.y)
+INV_DIR = $(BUILDDIR)/inv
+precedencia-invertida: $(LEXERDIR)/lexer.l $(PARSERDIR)/parser.y $(SOURCES)
+	@echo "🔁 Generando intérprete con precedencia de + - y * / % intercambiada..."
+	mkdir -p $(INV_DIR)
+	sed -e 's/^%left PLUS MINUS$$/%left @@TMP@@/' \
+	    -e 's/^%left MULTIPLY DIVIDE MODULO$$/%left PLUS MINUS/' \
+	    -e 's/^%left @@TMP@@$$/%left MULTIPLY DIVIDE MODULO/' \
+	    $(PARSERDIR)/parser.y > $(INV_DIR)/parser.y
+	@grep -n "^%left PLUS MINUS\|^%left MULTIPLY" $(INV_DIR)/parser.y
+	bison -d -o $(INV_DIR)/parser.tab.c $(INV_DIR)/parser.y
+	flex -o $(INV_DIR)/lex.yy.c $(LEXERDIR)/lexer.l
+	$(CC) $(CFLAGS) -I$(INV_DIR) -Iinclude -o javalang_interpreter_inv \
+		$(SOURCES) $(INV_DIR)/parser.tab.c $(INV_DIR)/lex.yy.c $(LIBS)
+	@echo "✅ ./javalang_interpreter_inv listo"
+
+.PHONY: check-ejecucion precedencia-invertida

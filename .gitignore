@@ -5,6 +5,7 @@
 
 # Ejecutables
 javalang_interpreter
+javalang_interpreter_inv
 test_lexer
 test_parser
 test_semantic
@@ -58,11 +59,9 @@ Thumbs.db
 /parser/parser_simple.y
 /include/error_handler.h
 /include/gui.h
-/include/interpreter.h
 /include/symbol_table.h
 /src/error_handler.c
 /src/gui.c
-/src/interpreter.c
 /src/symbol_table.c
 /src/reports.h
 /include/ast_visualizer.h
