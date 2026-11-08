@@ -8,6 +8,7 @@
 // Variables globales
 static SemanticAnalyzer *global_analyzer = NULL;
 static bool is_builtin_function(const char *name);
+extern int block_counter;
 
 // Crear analizador semántico
 SemanticAnalyzer* create_semantic_analyzer() {
@@ -25,6 +26,7 @@ SemanticAnalyzer* create_semantic_analyzer() {
     analyzer->error_count = 0;
     analyzer->in_loop = false;
     analyzer->in_function = false;
+    block_counter = 0;  // numeración de bloques por análisis
     
     global_analyzer = analyzer;
     return analyzer;
@@ -610,7 +612,7 @@ void exit_scope(SemanticAnalyzer *analyzer) {
     }
 }
 
-static int block_counter = 0;
+int block_counter = 0;
 
 static void enter_block_scope(SemanticAnalyzer *analyzer) {
     char name[32];

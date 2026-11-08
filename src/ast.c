@@ -336,6 +336,68 @@ void print_ast(ASTNode *node, int depth) {
             }
             break;
             
+        case NODE_EXPRESSION_STMT:
+            printf("EXPRESSION_STMT\n");
+            print_ast(node->data.program.body, depth + 1);
+            break;
+        case NODE_IF_STMT:
+            printf("IF\n");
+            print_ast(node->data.if_stmt.condition, depth + 1);
+            print_ast(node->data.if_stmt.then_stmt, depth + 1);
+            if (node->data.if_stmt.else_stmt) {
+                for (int i = 0; i < depth; i++) printf("  ");
+                printf("ELSE\n");
+                print_ast(node->data.if_stmt.else_stmt, depth + 1);
+            }
+            break;
+        case NODE_WHILE_STMT:
+            printf("WHILE\n");
+            print_ast(node->data.while_stmt.condition, depth + 1);
+            print_ast(node->data.while_stmt.body, depth + 1);
+            break;
+        case NODE_DO_WHILE_STMT:
+            printf("DO_WHILE\n");
+            print_ast(node->data.while_stmt.body, depth + 1);
+            print_ast(node->data.while_stmt.condition, depth + 1);
+            break;
+        case NODE_FOR_STMT:
+            printf("FOR\n");
+            print_ast(node->data.for_stmt.init, depth + 1);
+            print_ast(node->data.for_stmt.condition, depth + 1);
+            print_ast(node->data.for_stmt.update, depth + 1);
+            print_ast(node->data.for_stmt.body, depth + 1);
+            break;
+        case NODE_SWITCH_STMT:
+            printf("SWITCH\n");
+            print_ast(node->data.switch_stmt.expression, depth + 1);
+            print_ast(node->data.switch_stmt.cases, depth + 1);
+            break;
+        case NODE_CASE_STMT:
+            printf(node->data.case_stmt.value ? "CASE\n" : "DEFAULT\n");
+            print_ast(node->data.case_stmt.value, depth + 1);
+            print_ast(node->data.case_stmt.statements, depth + 1);
+            break;
+        case NODE_BREAK_STMT:
+            printf("BREAK\n");
+            break;
+        case NODE_CONTINUE_STMT:
+            printf("CONTINUE\n");
+            break;
+        case NODE_RETURN_STMT:
+            printf("RETURN\n");
+            print_ast(node->data.return_stmt.value, depth + 1);
+            break;
+        case NODE_ARRAY_ACCESS:
+            printf("ARRAY_ACCESS\n");
+            print_ast(node->data.array_access.array, depth + 1);
+            print_ast(node->data.array_access.index, depth + 1);
+            break;
+        case NODE_ARRAY_INIT:
+            printf("ARRAY_INIT%s%s\n", node->data.array_init.type ? ": " : "",
+                   node->data.array_init.type ? node->data.array_init.type : "");
+            print_ast(node->data.array_init.size, depth + 1);
+            print_ast(node->data.array_init.values, depth + 1);
+            break;
         default:
             printf("UNKNOWN_NODE_TYPE: %d\n", node->type);
             break;
